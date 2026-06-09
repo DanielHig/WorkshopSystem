@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop Quote System — Moonee Valley Bus Lines</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:    #0d2137;
+  --navy2:   #163352;
+  --teal:    #1a6b8a;
+  --teal-lt: #d0e8f0;
+  --red:     #c0292b;
+  --red-dk:  #a0201f;
+  --rule:    #c5ced8;
+  --bg:      #e4e7ec;
+  --paper:   #ffffff;
+  --panel:   #f4f5f7;
+  --light:   #f0f4f7;
+  --mid:     #dde3e9;
+  --muted:   #6b7a8d;
+  --ink:     #1a2533;
+  --border:  #d0d4da;
+  --success: #27ae60;
+  --section-bg: #e4ecf1;
+  --section-stripe: #ccdde6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; padding: 16px; display: flex; flex-direction: column; align-items: center; color: var(--ink); }
+
+/* ── Toolbar ── */
+.toolbar {
+  width: 100%; max-width: 960px; display: flex; gap: 6px; margin-bottom: 14px;
+  flex-wrap: wrap; align-items: center; background: var(--navy); padding: 10px 14px; border-radius: 2px;
+}
+.toolbar-title { font-family: 'Roboto Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #aec8d8; flex: 1; min-width: 100px; }
+.toolbar-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.15); margin: 0 4px; }
+.btn { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 12px; border: none; cursor: pointer; border-radius: 2px; transition: all 0.12s; white-space: nowrap; }
+.btn-ghost  { background: rgba(255,255,255,0.1); color: #cde; border: 1px solid rgba(255,255,255,0.2); }
+.btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-save   { background: #1a5c8a; color: #fff; }
+.btn-save:hover { background: #13456b; }
+.btn-pdf    { background: #0d7c4e; color: #fff; }
+.btn-pdf:hover  { background: #095c39; }
+.btn-export { background: #5c3d8a; color: #fff; }
+.btn-export:hover { background: #432c66; }
+.btn-word  { background: #2b5fa6; color: #fff; }
+.btn-word:hover  { background: #1e4278; }
+.btn-excel { background: #1e7145; color: #fff; }
+.btn-excel:hover { background: #155231; }
+.btn-dup   { background: #1a5c4a; color: #fff; }
+.btn-dup:hover   { background: #0f3d30; }
+.btn-red   { background: var(--red); color: #fff; }
+.btn-red:hover   { background: var(--red-dk); }
+.btn-fleet { background: var(--navy2); color: #fff; }
+.btn-fleet:hover { background: #0d2137; }
+.btn-cust  { background: #2a5298; color: #fff; }
+.btn-cust:hover  { background: #1e3d72; }
+#importInput { display: none; }
+
+/* ── Register panels ── */
+.reg-panel { width: 100%; max-width: 960px; background: var(--paper); box-shadow: 0 4px 24px rgba(0,0,0,0.12); margin-bottom: 14px; display: none; }
+.reg-panel.open { display: block; }
+.reg-panel-hdr { color: #fff; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; }
+.reg-panel-hdr.fleet-hdr { background: var(--navy); border-bottom: 3px solid var(--teal); }
+.reg-panel-hdr.cust-hdr  { background: #2a5298; border-bottom: 3px solid var(--teal); }
+.reg-panel-hdr h2 { font-family: 'Roboto Condensed', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.reg-panel-hdr p  { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+.panel-close { background: rgba(255,255,255,0.12); color: #fff; border: none; padding: 5px 12px; font-size: 11px; cursor: pointer; font-weight: 600; }
+.panel-close:hover { background: rgba(255,255,255,0.22); }
+.reg-add-form { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.reg-add-form h3 { font-family: 'Roboto Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.reg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; margin-bottom: 12px; }
+.reg-grid .field { display: flex; flex-direction: column; gap: 4px; }
+.reg-grid label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-family: 'Roboto Condensed', sans-serif; }
+.reg-grid input, .reg-grid select { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink); background: #fff; border: 1.5px solid var(--border); padding: 7px 9px; width: 100%; outline: none; }
+.reg-grid input:focus, .reg-grid select:focus { border-color: var(--teal); }
+.btn-save-reg { background: var(--success); color: #fff; padding: 8px 18px; font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border: none; cursor: pointer; }
+.btn-save-reg:hover { background: #219a52; }
+.reg-table-wrap { padding: 0 22px 16px; max-height: 280px; overflow-y: auto; }
+.reg-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+.reg-table th { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 6px 8px; border-bottom: 1.5px solid var(--border); background: var(--panel); position: sticky; top: 0; font-family: 'Roboto Condensed', sans-serif; }
+.reg-table td { padding: 7px 8px; border-bottom: 1px solid #e8ecf0; }
+.reg-table tr:hover td { background: #f0f4f7; }
+.reg-tag { font-family: 'Roboto Condensed', sans-serif; font-weight: 700; font-size: 13px; color: var(--navy); }
+.reg-del { background: transparent; border: none; color: #c5cdd8; font-size: 14px; padding: 0 4px; cursor: pointer; }
+.reg-del:hover { color: var(--red); }
+.reg-edit { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 10px; padding: 3px 8px; cursor: pointer; font-family: 'Roboto Condensed', sans-serif; font-weight: 700; }
+.reg-edit:hover { background: var(--panel); color: var(--ink); }
+.no-rows { color: var(--muted); font-size: 12px; text-align: center; padding: 18px; font-style: italic; }
+
+/* ── Saved panel ── */
+.saved-panel { width: 100%; max-width: 960px; background: var(--navy2); color: #fff; padding: 12px 16px; margin-bottom: 12px; display: none; }
+.saved-panel.open { display: block; }
+.saved-panel h2 { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #7aadca; margin-bottom: 10px; font-family: 'Roboto Condensed', sans-serif; }
+.saved-list { display: flex; flex-direction: column; gap: 5px; }
+.saved-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.07); padding: 8px 12px; cursor: pointer; }
+.saved-item:hover { background: rgba(255,255,255,0.13); }
+.saved-item-info { flex: 1; }
+.saved-item-ref  { font-weight: 700; font-size: 13px; }
+.saved-item-meta { font-size: 11px; color: #8aadbe; margin-top: 1px; }
+.saved-item-copy { font-size: 10px; color: #7acdaa; cursor: pointer; padding: 3px 8px; background: rgba(26,107,74,0.15); border: none; font-weight: 600; text-transform: uppercase; font-family: 'Roboto Condensed', sans-serif; }
+.saved-item-copy:hover { background: rgba(26,107,74,0.3); }
+.saved-item-del  { font-size: 10px; color: #f87171; cursor: pointer; padding: 3px 8px; background: rgba(255,0,0,0.1); border: none; font-weight: 600; text-transform: uppercase; font-family: 'Roboto Condensed', sans-serif; }
+.saved-item-del:hover { background: rgba(255,0,0,0.25); }
+.no-saved { color: #6a8a9a; font-size: 12px; font-style: italic; }
+
+/* ── Quote doc ── */
+.quote { width: 100%; max-width: 960px; background: var(--paper); box-shadow: 0 2px 24px rgba(13,33,55,0.18); }
+
+/* ── Doc header ── */
+.doc-header { background: var(--navy); padding: 0; display: grid; grid-template-columns: 1fr auto; }
+.doc-header-left { padding: 22px 28px 18px; border-right: 1px solid rgba(255,255,255,0.08); }
+.doc-header-right { padding: 22px 28px 18px; text-align: right; min-width: 260px; }
+
+.company-name-input { font-family: 'Roboto Condensed', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; background: transparent; border: none; width: 100%; padding: 0; line-height: 1.1; }
+.company-name-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+.company-name-input::placeholder { color: rgba(255,255,255,0.25); }
+
+.hdr-input { display: block; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #a8c4d4; background: transparent; border: none; width: 100%; padding: 1px 0; line-height: 1.7; }
+.hdr-input:focus { outline: none; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25); }
+.hdr-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.doc-type-selector { display: flex; gap: 4px; margin-bottom: 10px; justify-content: flex-end; }
+.doc-type-btn { font-family: 'Roboto Condensed', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #7aadca; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+.doc-type-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.doc-type-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+@media print { .doc-type-selector { display: none !important; } }
+
+.doc-title { font-family: 'Roboto Condensed', sans-serif; font-size: 32px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 14px; }
+.meta-row { display: flex; justify-content: flex-end; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.meta-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #567a8d; white-space: nowrap; }
+.meta-input { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #d4e8f4; background: transparent; border: none; text-align: right; width: 165px; padding: 0; cursor: default; }
+.meta-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); cursor: text; }
+.meta-input::placeholder { color: rgba(255,255,255,0.18); }
+
+.teal-stripe { height: 3px; background: linear-gradient(90deg, var(--teal) 0%, #3aaacf 100%); }
+
+/* ── Lookup row ── */
+.lookup-strip { background: #edf2f9; border-bottom: 1px solid #9db8d8; padding: 10px 20px; display: flex; gap: 12px; align-items: flex-end; }
+.lookup-strip .field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.lookup-strip label { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--navy2); font-family: 'Roboto Condensed', sans-serif; }
+.lookup-strip select { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--navy); background: #fff; border: 1.5px solid #9db8d8; padding: 7px 10px; width: 100%; outline: none; }
+.lookup-strip select:focus { border-color: var(--teal); }
+.lookup-badge { font-size: 11px; font-weight: 700; color: #fff; background: var(--teal); padding: 7px 14px; white-space: nowrap; opacity: 0; transition: opacity 0.3s; font-family: 'Roboto Condensed', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.lookup-badge.visible { opacity: 1; }
+
+/* ── Info grid ── */
+.info-band { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 2px solid var(--navy); }
+.info-col { padding: 12px 20px; border-right: 1px solid var(--mid); }
+.info-col:last-child { border-right: none; }
+.info-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-bottom: 5px; font-family: 'Roboto Condensed', sans-serif; }
+.info-input { display: block; font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink); background: transparent; border: none; border-bottom: 1px solid var(--rule); width: 100%; padding: 2px 0; line-height: 1.6; margin-bottom: 1px; }
+.info-input:focus { outline: none; border-bottom-color: var(--teal); }
+.info-input::placeholder { color: #c0c8d0; }
+.info-input.prefilled { color: var(--navy); border-bottom-color: #9db8d8; background: transparent; }
+select.info-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8694'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 4px center; padding-right: 18px; }
+
+/* ── Section headings ── */
+.section-head { background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 7px 20px; display: flex; align-items: center; gap: 10px; }
+.section-head span { font-family: 'Roboto Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy); }
+.section-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+.section-body { padding: 16px 20px; }
+
+/* ── Field helpers ── */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-family: 'Roboto Condensed', sans-serif; }
+.form-input { font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink); background: var(--panel); border: 1.5px solid var(--border); padding: 7px 10px; width: 100%; outline: none; transition: border-color 0.15s; }
+.form-input:focus { border-color: var(--teal); background: #fff; }
+.form-input::placeholder { color: #bcc4cf; }
+textarea.form-input { resize: vertical; min-height: 72px; line-height: 1.5; }
+select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8694'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+.prefilled.form-input { background: #edf2f9; border-color: #9db8d8; color: var(--navy); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 16px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px 16px; }
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+.span-4 { grid-column: span 4; }
+
+/* ── Line item table (sections) ── */
+.table-area { padding: 0; }
+.section-block { border-bottom: 1px solid var(--mid); }
+.section-header { display: grid; grid-template-columns: 38px 1fr 110px 100px 100px; background: var(--navy); }
+.section-header-cell { font-family: 'Roboto Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 7px 10px; color: #fff; text-align: center; }
+.section-header-cell.desc { text-align: left; }
+.section-header-cell.num  { text-align: right; }
+.section-name-row { background: var(--section-bg); border-top: 1px solid var(--section-stripe); border-bottom: 1px solid var(--section-stripe); }
+.section-name-cell { grid-column: 1 / -1; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: var(--navy); padding: 6px 10px 6px 48px; background: var(--section-bg); }
+.item-row { display: grid; grid-template-columns: 38px 1fr 110px 100px 100px; border-bottom: 1px solid var(--light); min-height: 30px; align-items: start; }
+.item-row:hover { background: #f7fafb; }
+.item-cell { padding: 0; display: flex; align-items: flex-start; border-right: 1px solid var(--light); }
+.item-cell:last-child { border-right: none; }
+.item-cell.center { justify-content: center; padding-top: 8px; }
+.item-cell.right  { justify-content: flex-end; }
+.item-cell.right .cell-input { padding-top: 8px; }
+.row-num { font-size: 10px; color: #b0bec8; text-align: center; width: 100%; user-select: none; padding: 0 4px; }
+.cell-input { font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--ink); background: transparent; border: none; width: 100%; padding: 6px 10px; min-height: 30px; box-sizing: border-box; }
+.cell-input:focus { outline: none; background: #f0f8ff; }
+.cell-input::placeholder { color: #ccd5de; }
+.cell-input.right { text-align: right; }
+.cell-input.desc-ta { resize: none; overflow: hidden; line-height: 1.45; height: 30px; display: block; vertical-align: top; }
+.add-row-btn-row { padding: 2px 8px; background: var(--light); border-bottom: 1px solid var(--mid); }
+.add-row-btn { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--teal); background: none; border: none; cursor: pointer; padding: 5px 6px; opacity: 0.75; transition: opacity 0.15s; }
+.add-row-btn:hover { opacity: 1; }
+.subtotal-row { display: grid; grid-template-columns: 38px 1fr 110px 100px 100px; background: var(--section-stripe); border-top: 1.5px solid #a8c4d4; }
+.subtotal-label { grid-column: 1 / 5; text-align: right; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--navy2); padding: 6px 12px; font-family: 'Roboto Condensed', sans-serif; }
+.subtotal-value { font-family: 'Roboto Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); text-align: right; padding: 6px 10px; border-left: 1px solid #a8c4d4; }
+
+/* ── Totals ── */
+.totals-area { border-top: 2px solid var(--navy); }
+.total-row { display: grid; grid-template-columns: 1fr 110px; border-bottom: 1px solid var(--mid); }
+.total-label { font-size: 11px; font-weight: 500; color: var(--muted); padding: 7px 14px; text-align: right; letter-spacing: 0.03em; text-transform: uppercase; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.total-val { font-family: 'Roboto Condensed', sans-serif; font-size: 14px; font-weight: 700; color: var(--navy); text-align: right; padding: 7px 10px; border-left: 1px solid var(--mid); }
+.total-row.grand-row { background: var(--navy); }
+.total-row.grand-row .total-label { font-size: 13px; font-weight: 700; color: #aac8da; letter-spacing: 0.08em; }
+.total-row.grand-row .total-val { font-size: 18px; color: #fff; border-left-color: rgba(255,255,255,0.15); }
+.gst-input { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none; border-bottom: 1px solid var(--rule); width: 36px; text-align: center; color: var(--muted); padding: 0; }
+.gst-input:focus { outline: none; border-bottom-color: var(--teal); }
+
+/* ── Toggle switch ── */
+.toggle-label { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+.toggle-track { display: inline-block; width: 32px; height: 17px; background: #c5ced8; border-radius: 9px; position: relative; transition: background 0.2s; }
+input[type=checkbox]:checked + .toggle-track { background: var(--teal); }
+input[type=checkbox] { display: none; }
+.toggle-thumb { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; background: #fff; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+input[type=checkbox]:checked + .toggle-track .toggle-thumb { left: 17px; }
+
+/* ── Fault table ── */
+.fault-wrap { overflow-x: auto; }
+.fault-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+.fault-table th { font-family: 'Roboto Condensed', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 6px 8px; border-bottom: 1.5px solid var(--border); background: var(--panel); white-space: nowrap; }
+.fault-table td { padding: 3px 4px; border-bottom: 1px solid var(--mid); vertical-align: middle; }
+.fault-table input, .fault-table select { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink); background: transparent; border: 1.5px solid var(--border); padding: 5px 7px; width: 100%; outline: none; }
+.fault-table input:focus, .fault-table select:focus { border-color: var(--teal); background: #fff; }
+.fault-table input.mono { font-family: monospace; }
+.fault-del { background: transparent; border: none; color: #c5cdd8; font-size: 15px; padding: 0 4px; cursor: pointer; transition: color 0.15s; }
+.fault-del:hover { color: var(--red); }
+.fault-add-btn { margin-top: 8px; background: transparent; color: var(--muted); border: 1.5px dashed var(--border); padding: 6px 14px; font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; width: 100%; cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.04em; }
+.fault-add-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--light); }
+
+/* ── Notes ── */
+.notes-area { padding: 14px 20px; border-top: 1px solid var(--mid); background: var(--light); }
+.notes-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-bottom: 5px; font-family: 'Roboto Condensed', sans-serif; }
+.notes-textarea { font-family: 'Inter', sans-serif; font-size: 11.5px; color: var(--muted); background: transparent; border: 1px dashed var(--rule); width: 100%; padding: 8px 10px; min-height: 52px; resize: vertical; line-height: 1.6; }
+.notes-textarea:focus { outline: none; border-color: var(--teal); }
+.notes-textarea::placeholder { color: #c0c8d0; }
+
+/* ── Footer ── */
+.doc-footer { background: var(--navy); padding: 12px 28px 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.footer-addr { width: 100%; text-align: center; font-size: 10.5px; color: #7aadca; line-height: 1.7; }
+.footer-addr input { display: block; font-family: 'Inter', sans-serif; font-size: 10.5px; color: #7aadca; background: transparent; border: none; padding: 0; width: 100%; text-align: center; }
+.footer-addr input:focus { outline: none; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25); }
+.footer-addr input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── Toast ── */
+.toast { position: fixed; bottom: 20px; right: 20px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; padding: 10px 18px; color: #fff; opacity: 0; transform: translateY(8px); transition: all 0.18s; pointer-events: none; z-index: 9999; border-radius: 2px; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok  { background: #0d7c4e; }
+.toast.err { background: #b91c1c; }
+.toast.inf { background: #1a5c8a; }
+
+/* ── Dup modal ── */
+.dup-pick:hover { background: rgba(26,107,138,0.35) !important; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: none; padding: 0; margin: 0; }
+  .toolbar, .saved-panel, .reg-panel { display: none !important; }
+  .quote { box-shadow: none; max-width: 100%; width: 100%; }
+  .item-row:hover { background: none; }
+  .add-row-btn-row { display: none; }
+  .lookup-strip { display: none; }
+  input, textarea, select { border: none !important; outline: none !important; background: transparent !important; }
+  .doc-type-selector { display: none !important; }
+}
+@page { margin: 10mm; size: A4; }
+</style>
+</head>
+<body>
+<div id="load-error" style="display:none;position:fixed;inset:0;background:#0d2137;color:#fff;font-family:sans-serif;padding:40px;z-index:99999;">
+  <h2 style="color:#f87171;margin-bottom:12px;">⚠ Loading Error</h2>
+  <p id="load-error-msg" style="font-size:14px;line-height:1.6;color:#aac8da;"></p>
+  <p style="margin-top:16px;font-size:12px;color:#567a8d;">Try: hard refresh (Ctrl+Shift+R), or check internet connection.</p>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-title">Workshop Quote System</span>
+  <button class="btn btn-fleet" onclick="togglePanel('fleet-panel')">🚌 Fleet</button>
+  <button class="btn btn-cust"  onclick="togglePanel('cust-panel')">👤 Customers</button>
+  <button class="btn btn-ghost" onclick="toggleSaved()">📂 Saved</button>
+  <button class="btn btn-ghost" onclick="newQuote()">+ New</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-export" onclick="exportJSON()">⬇ Export JSON</button>
+  <button class="btn btn-export" onclick="document.getElementById('importInput').click()">⬆ Import JSON</button>
+  <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-save" onclick="saveQuote()">💾 Save</button>
+  <button class="btn btn-dup"  onclick="duplicateCurrent()" id="dupBtn" style="display:none;">⧉ Duplicate</button>
+  <button class="btn btn-pdf"  onclick="exportPDF()">📄 PDF</button>
+  <button class="btn btn-word" onclick="exportWord()">📝 Word</button>
+  <button class="btn btn-excel" onclick="exportExcel()">📊 Excel</button>
+  <button class="btn btn-sp"    onclick="submitToSharePoint()">☁ SharePoint</button>
+</div>
+
+<!-- Fleet Register -->
+<div id="fleet-panel" class="reg-panel">
+  <div class="reg-panel-hdr fleet-hdr">
+    <div><h2>Fleet Register</h2><p>Save vehicles to auto-fill quote details</p></div>
+    <button class="panel-close" onclick="togglePanel('fleet-panel')">✕ Close</button>
+  </div>
+  <div class="reg-add-form">
+    <h3 id="fleet-form-title">Add New Vehicle</h3>
+    <div class="reg-grid">
+      <div class="field"><label>Registration *</label><input type="text" id="f-rego" placeholder="ABC 123" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="field"><label>Bus No.</label><input type="text" id="f-busno" placeholder="e.g. 042"></div>
+      <div class="field"><label>Year</label><input type="text" id="f-year" placeholder="2019"></div>
+      <div class="field"><label>Make</label>
+        <select id="f-make"><option value="">— Select —</option><option>Volvo</option><option>MAN</option><option>Mercedes-Benz</option><option>Scania</option><option>Iveco</option><option>DAF</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Model</label><input type="text" id="f-model" placeholder="e.g. B8RLE"></div>
+      <div class="field"><label>VIN / Chassis</label><input type="text" id="f-vin" placeholder="Chassis No."></div>
+      <div class="field"><label>Engine No.</label><input type="text" id="f-engine" placeholder="Engine No."></div>
+      <div class="field"><label>Body Make</label><input type="text" id="f-bodymake" placeholder="e.g. Volgren"></div>
+      <div class="field"><label>Operator</label><input type="text" id="f-operator" placeholder="Operator name"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn-save-reg" onclick="saveVehicle()">+ Save Vehicle</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="cancelFleetEdit()">Cancel</button>
+      <span id="fleet-save-msg" style="font-size:11px;color:var(--success);font-weight:600;opacity:0;transition:opacity 0.3s"></span>
+    </div>
+  </div>
+  <div class="reg-table-wrap">
+    <table class="reg-table">
+      <thead><tr><th>Rego</th><th>Bus No.</th><th>Year</th><th>Make</th><th>Model</th><th>VIN</th><th>Body Make</th><th>Operator</th><th></th></tr></thead>
+      <tbody id="fleet-tbody"><tr><td colspan="9" class="no-rows">No vehicles yet.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Customer Register -->
+<div id="cust-panel" class="reg-panel">
+  <div class="reg-panel-hdr cust-hdr">
+    <div><h2>Customer Register</h2><p>Save customers to auto-fill contact details</p></div>
+    <button class="panel-close" onclick="togglePanel('cust-panel')">✕ Close</button>
+  </div>
+  <div class="reg-add-form">
+    <h3 id="cust-form-title">Add New Customer</h3>
+    <div class="reg-grid">
+      <div class="field" style="grid-column:span 2"><label>Company / Operator Name *</label><input type="text" id="c-company" placeholder="Company name"></div>
+      <div class="field"><label>Contact Person</label><input type="text" id="c-contact" placeholder="Contact name"></div>
+      <div class="field"><label>Phone</label><input type="text" id="c-phone" placeholder="Phone number"></div>
+      <div class="field"><label>Mobile</label><input type="text" id="c-mobile" placeholder="Mobile number"></div>
+      <div class="field"><label>Email</label><input type="email" id="c-email" placeholder="email@example.com"></div>
+      <div class="field" style="grid-column:span 2"><label>Address</label><input type="text" id="c-address" placeholder="Street, suburb, state, postcode"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn-save-reg" onclick="saveCustomer()">+ Save Customer</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="cancelCustEdit()">Cancel</button>
+      <span id="cust-save-msg" style="font-size:11px;color:var(--success);font-weight:600;opacity:0;transition:opacity 0.3s"></span>
+    </div>
+  </div>
+  <div class="reg-table-wrap">
+    <table class="reg-table">
+      <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Mobile</th><th>Email</th><th>Address</th><th></th></tr></thead>
+      <tbody id="cust-tbody"><tr><td colspan="7" class="no-rows">No customers yet.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Saved panel -->
+<div class="saved-panel" id="savedPanel">
+  <h2>Saved Quotes</h2>
+  <div class="saved-list" id="savedList"></div>
+</div>
+
+<!-- Quote document -->
+<div class="quote" id="quoteDoc">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <input class="company-name-input" id="companyName" type="text" placeholder="COMPANY NAME" value="MOONEE VALLEY BUS LINES">
+      <div style="margin-top:12px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#567a8d;margin-bottom:4px;">Issued To</div>
+        <input class="hdr-input" id="issuedName"  placeholder="Company name">
+        <input class="hdr-input" id="issuedAddr"  placeholder="Address">
+        <input class="hdr-input" id="issuedCity"  placeholder="City, State Postcode">
+        <input class="hdr-input" id="issuedEmail" placeholder="Email">
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#567a8d;margin-bottom:4px;">Reference No.</div>
+        <input class="hdr-input" id="jobRef" placeholder="Customer PO / reference">
+      </div>
+    </div>
+    <div class="doc-header-right">
+      <div class="doc-type-selector">
+        <button class="doc-type-btn active" data-prefix="WQ"  data-title="QUOTE"    data-label="Quote #"    onclick="setDocType(this)">Quote</button>
+        <button class="doc-type-btn"        data-prefix="WI"  data-title="INVOICE"  data-label="Invoice #"  onclick="setDocType(this)">Invoice</button>
+        <button class="doc-type-btn"        data-prefix="WE"  data-title="ESTIMATE" data-label="Estimate #" onclick="setDocType(this)">Estimate</button>
+      </div>
+      <div class="doc-title" id="docTitle">QUOTE</div>
+      <div class="meta-row">
+        <span class="meta-label" id="refLabel">Quote #</span>
+        <input class="meta-input" id="quoteRef" type="text" placeholder="WQ-202506-001" title="Auto-generated — click to edit">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Date</span>
+        <input class="meta-input" id="quoteDate" type="text">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Job Type</span>
+        <input class="meta-input" id="jobType" type="text" placeholder="e.g. Scheduled Service" style="cursor:text;opacity:1;">
+      </div>
+    </div>
+  </div>
+  <div class="teal-stripe"></div>
+
+  <!-- Vehicle lookup -->
+  <div class="lookup-strip">
+    <div class="field">
+      <label>🔍 Select Vehicle from Fleet Register</label>
+      <select id="rego-select" onchange="lookupVehicle()">
+        <option value="">— Select registration to auto-fill —</option>
+      </select>
+    </div>
+    <div class="lookup-badge" id="vehicle-badge">✓ Vehicle Loaded</div>
+    <div class="field">
+      <label>👤 Select Customer from Register</label>
+      <select id="cust-select" onchange="lookupCustomer()">
+        <option value="">— Select customer to auto-fill —</option>
+      </select>
+    </div>
+    <div class="lookup-badge" id="customer-badge">✓ Customer Loaded</div>
+  </div>
+
+  <!-- Vehicle details -->
+  <div class="section-head"><div class="section-dot"></div><span>Vehicle Details</span></div>
+  <div class="section-body">
+    <div class="grid-4">
+      <div class="field"><label>Registration</label><input class="form-input" id="vehReg" type="text" placeholder="ABC 123" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="field"><label>Bus No.</label><input class="form-input" id="vehFleet" type="text" placeholder="e.g. 042"></div>
+      <div class="field"><label>Year</label><input class="form-input" id="vehYear" type="text" placeholder="e.g. 2019"></div>
+      <div class="field"><label>Make</label>
+        <select class="form-input" id="vehMake"><option value="">— Select —</option><option>Volvo</option><option>MAN</option><option>Mercedes-Benz</option><option>Scania</option><option>Iveco</option><option>DAF</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Model</label><input class="form-input" id="vehModel" type="text" placeholder="e.g. B8RLE"></div>
+      <div class="field"><label>VIN / Chassis No.</label><input class="form-input" id="vehVin" type="text" placeholder="Chassis No."></div>
+      <div class="field"><label>Engine No.</label><input class="form-input" id="vehEngine" type="text" placeholder="Engine No."></div>
+      <div class="field"><label>Body Make</label><input class="form-input" id="vehBody" type="text" placeholder="e.g. Volgren"></div>
+      <div class="field"><label>Odometer (km)</label><input class="form-input" id="vehMileage" type="text" placeholder="e.g. 245,800"></div>
+      <div class="field"><label>Date of Works</label><input class="form-input" id="dateWorks" type="date"></div>
+    </div>
+  </div>
+
+  <!-- Job details -->
+  <div class="section-head"><div class="section-dot"></div><span>Job Details</span></div>
+  <div class="section-body">
+    <div class="grid-2">
+      <div class="field span-2"><label>Complaint / Fault Description</label><textarea class="form-input" id="complaint" placeholder="Describe the issue or fault as reported..."></textarea></div>
+      <div class="field span-2"><label>Work to be Carried Out</label><textarea class="form-input" id="workDesc" placeholder="Detail the work to be performed, repairs, parts to be fitted..."></textarea></div>
+      <div class="field"><label>Systems / Areas Affected</label><input class="form-input" id="systems" type="text" placeholder="e.g. Engine, Brakes, Air System"></div>
+      <div class="field"><label>Priority</label>
+        <select class="form-input" id="priority">
+          <option value="">— Select —</option>
+          <option>Routine</option><option>Urgent</option><option>Critical – Bus Off Road</option>
+        </select>
+      </div>
+      <div class="field"><label>Technician / Quoted By</label><input class="form-input" id="technician" type="text" placeholder="Name"></div>
+      <div class="field"><label>Quote Valid Until</label><input class="form-input" id="validUntil" type="text" placeholder="e.g. 30 days from date issued"></div>
+    </div>
+  </div>
+
+  <!-- Fault Codes -->
+  <div class="section-head"><div class="section-dot"></div><span>Fault Codes</span></div>
+  <div class="section-body">
+    <div class="fault-wrap">
+      <table class="fault-table" id="fault-table">
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th style="min-width:130px">Fault Code</th>
+            <th>Description / System</th>
+            <th style="width:130px">Status</th>
+            <th style="width:30px"></th>
+          </tr>
+        </thead>
+        <tbody id="fault-body"></tbody>
+      </table>
+    </div>
+    <button class="fault-add-btn" onclick="addFaultRow()">+ Add Fault Code</button>
+  </div>
+
+  <!-- Line items -->
+  <div class="section-head"><div class="section-dot"></div><span>Parts &amp; Labour</span></div>
+  <div class="table-area">
+    <div class="section-header">
+      <div class="section-header-cell">Item</div>
+      <div class="section-header-cell desc">Description</div>
+      <div class="section-header-cell num">QTY / Hrs</div>
+      <div class="section-header-cell num">Unit Price</div>
+      <div class="section-header-cell num">Total</div>
+    </div>
+    <div id="sectionsContainer"></div>
+  </div>
+
+  <!-- Grand totals -->
+  <div class="totals-area">
+    <div class="total-row">
+      <div class="total-label">Subtotal</div>
+      <div class="total-val" id="grandEx">$0.00</div>
+    </div>
+    <div class="total-row">
+      <div class="total-label" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+        <label class="toggle-label"><input type="checkbox" id="gstEnabled" checked onchange="recalcAll()"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+        GST&nbsp;(<input class="gst-input" id="gstRate" type="number" value="10" min="0" max="100">%)
+      </div>
+      <div class="total-val" id="grandGST">$0.00</div>
+    </div>
+    <div class="total-row grand-row">
+      <div class="total-label">Total Due</div>
+      <div class="total-val" id="grandTotal">$0.00</div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-area">
+    <div class="notes-label">Notes &amp; Terms</div>
+    <textarea class="notes-textarea" id="quoteNotes" placeholder="Payment terms, warranty, exclusions, additional notes..."></textarea>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <div class="footer-addr">
+      <input type="text" id="footerLine1" value="Moonee Valley Bus Lines Pty. Ltd." style="font-weight:600;color:#aac8da;">
+      <input type="text" id="footerLine2" value="6 Tullamarine Park Road, Tullamarine VIC 3043  —  PO Box 773 Tullamarine 3043">
+      <input type="text" id="footerLine3" value="Ph: 03 9310 5286   M: 0411 132 359">
+      <input type="text" id="footerLine3b" value="E: daniel.higginson@mooneevalleybus.com.au">
+      <input type="text" id="footerLine4" value="ABN 41 004 679 378">
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var d = document.getElementById('load-error');
+  var m = document.getElementById('load-error-msg');
+  if (d && m) {
+    m.textContent = 'JavaScript error: ' + msg + (src ? ' (line ' + line + ')' : '');
+    d.style.display = 'block';
+  }
+  return false;
+};
+
+// ══════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════
+const STORAGE_KEY  = 'mvbl_workshop_quotes';
+const FLEET_KEY    = 'workshop_fleet_v1';   // shared with job card
+const CUST_KEY     = 'workshop_customers_v1'; // shared with job card
+let currentId      = null;
+let currentPrefix  = 'WQ';
+let currentDocTitle= 'QUOTE';
+let currentRefLabel= 'Quote #';
+let fleet = [], customers = [], fleetEditIdx = -1, custEditIdx = -1;
+
+const SECTIONS = [
+  { id: 'parts',  label: 'Parts & Materials',  subtotalLabel: 'Parts Total' },
+  { id: 'labour', label: 'Labour',              subtotalLabel: 'Labour Total' },
+  { id: 'other',  label: 'Other Costs',         subtotalLabel: 'Other Total' },
+];
+
+const DOC_TYPES = {
+  WQ:  { title: 'QUOTE',    label: 'Quote #'    },
+  WI:  { title: 'INVOICE',  label: 'Invoice #'  },
+  WE:  { title: 'ESTIMATE', label: 'Estimate #' },
+};
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  document.getElementById('quoteDate').value = new Date().toLocaleDateString('en-AU');
+  document.getElementById('dateWorks').value = new Date().toISOString().split('T')[0];
+  document.getElementById('gstRate').addEventListener('input', recalcAll);
+  loadFleetData(); loadCustomerData();
+  addFaultRow();
+  buildSections();
+  generateRef();
+});
+
+// ══════════════════════════════════════════════════════
+//  FLEET REGISTER
+// ══════════════════════════════════════════════════════
+function loadFleetData() {
+  try { fleet = JSON.parse(localStorage.getItem(FLEET_KEY)) || []; } catch { fleet = []; }
+  renderFleetTable(); renderRegoSelect();
+}
+function saveFleetStorage() { localStorage.setItem(FLEET_KEY, JSON.stringify(fleet)); }
+
+function renderFleetTable() {
+  const tbody = document.getElementById('fleet-tbody');
+  if (!fleet.length) { tbody.innerHTML = '<tr><td colspan="9" class="no-rows">No vehicles yet.</td></tr>'; return; }
+  tbody.innerHTML = fleet.map((v,i) => `<tr>
+    <td><span class="reg-tag">${v.rego}</span></td>
+    <td>${v.busno||'—'}</td><td>${v.year||'—'}</td><td>${v.make||'—'}</td><td>${v.model||'—'}</td>
+    <td style="font-size:11px;color:var(--muted)">${v.vin||'—'}</td><td>${v.bodymake||'—'}</td><td>${v.operator||'—'}</td>
+    <td style="display:flex;gap:4px;padding:6px 4px">
+      <button class="reg-edit" onclick="editVehicle(${i})">Edit</button>
+      <button class="reg-del" onclick="deleteVehicle(${i})">✕</button>
+    </td></tr>`).join('');
+}
+
+function renderRegoSelect() {
+  const sel = document.getElementById('rego-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select registration —</option>';
+  fleet.forEach((v,i) => { const o = document.createElement('option'); o.value=i; o.textContent=`${v.rego}${v.busno?' · '+v.busno:''}${v.make?' · '+v.make:''}${v.model?' '+v.model:''}`; sel.appendChild(o); });
+  if (cur) sel.value = cur;
+}
+
+function saveVehicle() {
+  const rego = document.getElementById('f-rego').value.trim().toUpperCase();
+  if (!rego) { toast('Registration is required','err'); return; }
+  if (fleet.findIndex((v,i) => v.rego===rego && i!==fleetEditIdx) !== -1) { toast('That rego already exists','err'); return; }
+  const v = { rego, busno:gv('f-busno'), year:gv('f-year'), make:document.getElementById('f-make').value, model:gv('f-model'), vin:gv('f-vin'), engineno:gv('f-engine'), bodymake:gv('f-bodymake'), operator:gv('f-operator') };
+  if (fleetEditIdx>=0) { fleet[fleetEditIdx]=v; fleetEditIdx=-1; document.getElementById('fleet-form-title').textContent='Add New Vehicle'; }
+  else fleet.push(v);
+  saveFleetStorage(); renderFleetTable(); renderRegoSelect(); clearFleetForm();
+  flash('fleet-save-msg','✓ Saved!');
+}
+
+function clearFleetForm() { ['f-rego','f-busno','f-year','f-model','f-vin','f-engine','f-bodymake','f-operator'].forEach(id => document.getElementById(id).value=''); document.getElementById('f-make').value=''; fleetEditIdx=-1; document.getElementById('fleet-form-title').textContent='Add New Vehicle'; }
+function cancelFleetEdit() { clearFleetForm(); }
+function editVehicle(i) { const v=fleet[i]; fleetEditIdx=i; ['rego','busno','year','model','vin','engine','bodymake','operator'].forEach(f => document.getElementById('f-'+f).value=v[f==='engine'?'engineno':f==='bodymake'?'bodymake':f]||''); document.getElementById('f-make').value=v.make||''; document.getElementById('fleet-form-title').textContent=`Editing: ${v.rego}`; document.getElementById('f-rego').focus(); }
+function deleteVehicle(i) { if (!confirm(`Remove ${fleet[i].rego}?`)) return; fleet.splice(i,1); saveFleetStorage(); renderFleetTable(); renderRegoSelect(); }
+
+function lookupVehicle() {
+  const idx = document.getElementById('rego-select').value;
+  const badge = document.getElementById('vehicle-badge');
+  if (idx==='') { badge.classList.remove('visible'); return; }
+  const v = fleet[parseInt(idx)]; if (!v) return;
+  const fv = (id,val) => { const el=document.getElementById(id); if(!el) return; el.value=val||''; if(val) el.classList.add('prefilled'); else el.classList.remove('prefilled'); };
+  fv('vehReg',v.rego); fv('vehFleet',v.busno); fv('vehYear',v.year); fv('vehModel',v.model);
+  fv('vehVin',v.vin); fv('vehEngine',v.engineno); fv('vehBody',v.bodymake);
+  const mk=document.getElementById('vehMake'); mk.value=v.make||''; if(v.make) mk.classList.add('prefilled');
+  if (v.operator && !document.getElementById('issuedName').value.trim()) { document.getElementById('issuedName').value=v.operator; }
+  badge.classList.add('visible');
+  toast(`Loaded: ${v.rego}${v.make?' · '+v.make:''}${v.model?' '+v.model:''}`, 'ok');
+}
+
+// ══════════════════════════════════════════════════════
+//  CUSTOMER REGISTER
+// ══════════════════════════════════════════════════════
+function loadCustomerData() {
+  try { customers = JSON.parse(localStorage.getItem(CUST_KEY)) || []; } catch { customers = []; }
+  renderCustTable(); renderCustSelect();
+}
+function saveCustStorage() { localStorage.setItem(CUST_KEY, JSON.stringify(customers)); }
+
+function renderCustTable() {
+  const tbody = document.getElementById('cust-tbody');
+  if (!customers.length) { tbody.innerHTML = '<tr><td colspan="7" class="no-rows">No customers yet.</td></tr>'; return; }
+  tbody.innerHTML = customers.map((c,i) => `<tr>
+    <td><strong style="color:var(--navy)">${c.company}</strong></td>
+    <td>${c.contact||'—'}</td><td>${c.phone||'—'}</td><td>${c.mobile||'—'}</td>
+    <td style="font-size:11px">${c.email||'—'}</td><td style="font-size:11px;color:var(--muted)">${c.address||'—'}</td>
+    <td style="display:flex;gap:4px;padding:6px 4px">
+      <button class="reg-edit" onclick="editCustomer(${i})">Edit</button>
+      <button class="reg-del" onclick="deleteCustomer(${i})">✕</button>
+    </td></tr>`).join('');
+}
+
+function renderCustSelect() {
+  const sel = document.getElementById('cust-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select customer —</option>';
+  customers.forEach((c,i) => { const o=document.createElement('option'); o.value=i; o.textContent=`${c.company}${c.contact?' · '+c.contact:''}`; sel.appendChild(o); });
+  if (cur) sel.value = cur;
+}
+
+function saveCustomer() {
+  const company = document.getElementById('c-company').value.trim();
+  if (!company) { toast('Company name is required','err'); return; }
+  const c = { company, contact:gv('c-contact'), phone:gv('c-phone'), mobile:gv('c-mobile'), email:gv('c-email'), address:gv('c-address') };
+  if (custEditIdx>=0) { customers[custEditIdx]=c; custEditIdx=-1; document.getElementById('cust-form-title').textContent='Add New Customer'; }
+  else customers.push(c);
+  saveCustStorage(); renderCustTable(); renderCustSelect(); clearCustForm();
+  flash('cust-save-msg','✓ Saved!');
+}
+
+function clearCustForm() { ['c-company','c-contact','c-phone','c-mobile','c-email','c-address'].forEach(id => document.getElementById(id).value=''); custEditIdx=-1; document.getElementById('cust-form-title').textContent='Add New Customer'; }
+function cancelCustEdit() { clearCustForm(); }
+function editCustomer(i) { const c=customers[i]; custEditIdx=i; ['company','contact','phone','mobile','email','address'].forEach(f => document.getElementById('c-'+f).value=c[f]||''); document.getElementById('cust-form-title').textContent=`Editing: ${c.company}`; document.getElementById('c-company').focus(); }
+function deleteCustomer(i) { if (!confirm(`Remove ${customers[i].company}?`)) return; customers.splice(i,1); saveCustStorage(); renderCustTable(); renderCustSelect(); }
+
+function lookupCustomer() {
+  const idx = document.getElementById('cust-select').value;
+  const badge = document.getElementById('customer-badge');
+  if (idx==='') { badge.classList.remove('visible'); return; }
+  const c = customers[parseInt(idx)]; if (!c) return;
+  document.getElementById('issuedName').value  = c.company||'';
+  document.getElementById('issuedAddr').value  = c.address||'';
+  document.getElementById('issuedEmail').value = c.email||'';
+  badge.classList.add('visible');
+  toast(`Loaded: ${c.company}`, 'ok');
+}
+
+// ══════════════════════════════════════════════════════
+//  SECTIONS & ROWS
+// ══════════════════════════════════════════════════════
+function buildSections(data = {}) {
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const rows = (data[sec.id] && data[sec.id].length) ? data[sec.id] : [emptyRow()];
+    const block = document.createElement('div');
+    block.className = 'section-block'; block.id = 'sec-' + sec.id;
+    const nameRow = document.createElement('div');
+    nameRow.className = 'section-name-row';
+    nameRow.innerHTML = `<div class="section-name-cell">${sec.label}</div>`;
+    block.appendChild(nameRow);
+    const rowsDiv = document.createElement('div'); rowsDiv.id = 'rows-' + sec.id;
+    block.appendChild(rowsDiv);
+    rows.forEach((r,i) => appendRow(rowsDiv, sec.id, r, i+1));
+    const addBtn = document.createElement('div'); addBtn.className = 'add-row-btn-row';
+    addBtn.innerHTML = `<button class="add-row-btn" onclick="addRowToSection('${sec.id}')">+ Add Line</button>`;
+    block.appendChild(addBtn);
+    const sub = document.createElement('div'); sub.className = 'subtotal-row';
+    sub.innerHTML = `<div class="subtotal-label">${sec.subtotalLabel}</div><div class="subtotal-value" id="sub-${sec.id}">$0.00</div>`;
+    block.appendChild(sub);
+    container.appendChild(block);
+  });
+  recalcAll(); renumberAll();
+}
+
+function emptyRow() { return { desc:'', qty:'', price:'' }; }
+
+function appendRow(container, secId, data={}, num=1) {
+  const row = document.createElement('div'); row.className = 'item-row';
+  row.innerHTML = `
+    <div class="item-cell center"><span class="row-num">${num}</span></div>
+    <div class="item-cell"><textarea class="cell-input desc-ta" placeholder="Description…" rows="1" oninput="autoGrow(this);recalcSection('${secId}')" onkeydown="handleDescKey(event,'${secId}',this)">${esc(data.desc||'')}</textarea></div>
+    <div class="item-cell right"><input class="cell-input right" type="number" min="0" step="0.25" placeholder="0" value="${esc(data.qty||'')}" oninput="recalcSection('${secId}')" onkeydown="handleNumKey(event,'${secId}',this)"></div>
+    <div class="item-cell right"><input class="cell-input right" type="number" min="0" step="0.01" placeholder="0.00" value="${esc(data.price||'')}" oninput="recalcSection('${secId}')" onkeydown="handleNumKey(event,'${secId}',this)"></div>
+    <div class="item-cell right row-total-cell" style="padding-top:8px;padding-right:10px;font-size:12px;font-weight:600;color:var(--navy2);"></div>`;
+  container.appendChild(row);
+  const ta = row.querySelector('textarea');
+  if (ta && data.desc) autoGrow(ta);
+}
+
+function autoGrow(ta) { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }
+function addRowToSection(secId) { const rd=document.getElementById('rows-'+secId); const num=rd.querySelectorAll('.item-row').length+1; appendRow(rd,secId,{},num); rd.querySelectorAll('.item-row')[rd.querySelectorAll('.item-row').length-1].querySelector('textarea').focus(); }
+
+function handleDescKey(e, secId, ta) {
+  if (e.key==='Enter') { e.preventDefault(); addRowToSection(secId); }
+  if (e.key==='Tab' && !e.shiftKey) { e.preventDefault(); const row=ta.closest('.item-row'); const qi=row.querySelectorAll('input')[0]; if(qi) qi.focus(); }
+}
+function handleNumKey(e, secId, input) {
+  if (e.key!=='Tab' || e.shiftKey) return;
+  const rd=document.getElementById('rows-'+secId); const allRows=rd.querySelectorAll('.item-row'); const lastRow=allRows[allRows.length-1];
+  const isLastPrice = lastRow && lastRow.querySelectorAll('input')[1]===input;
+  if (isLastPrice) { const ta=lastRow.querySelector('textarea'); const inp=lastRow.querySelectorAll('input'); const has=(ta&&ta.value.trim())||inp[0].value||inp[1].value; if(has){e.preventDefault();addRowToSection(secId);} }
+}
+
+function recalcSection(secId) {
+  const rd=document.getElementById('rows-'+secId); let total=0;
+  rd.querySelectorAll('.item-row').forEach(row => {
+    const inp=row.querySelectorAll('input'); const qty=parseFloat(inp[0].value)||0; const price=parseFloat(inp[1].value)||0; const rt=qty*price; total+=rt;
+    const tc=row.querySelector('.row-total-cell'); if(tc) tc.textContent=(qty||price)?fmtAUD(rt):'';
+  });
+  document.getElementById('sub-'+secId).textContent=fmtAUD(total); recalcAll();
+}
+
+function recalcAll() {
+  let subtotal=0;
+  SECTIONS.forEach(sec => { const el=document.getElementById('sub-'+sec.id); if(el) subtotal+=parseFloat(el.textContent.replace(/[^0-9.-]/g,''))||0; });
+  const gstOn=document.getElementById('gstEnabled').checked; const gstRate=parseFloat(document.getElementById('gstRate').value)||0;
+  const gst=gstOn?subtotal*(gstRate/100):0;
+  document.getElementById('grandGST').style.opacity=gstOn?'1':'0.3';
+  document.getElementById('gstRate').disabled=!gstOn;
+  document.getElementById('grandEx').textContent=fmtAUD(subtotal);
+  document.getElementById('grandGST').textContent=fmtAUD(gst);
+  document.getElementById('grandTotal').textContent=fmtAUD(subtotal+gst);
+}
+
+function fmtAUD(n) { return '$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function renumberAll() { SECTIONS.forEach(sec => { document.querySelectorAll('#rows-'+sec.id+' .item-row').forEach((r,i) => { const s=r.querySelector('.row-num'); if(s) s.textContent=i+1; }); }); }
+function esc(v) { return String(v).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ══════════════════════════════════════════════════════
+//  DOC TYPE
+// ══════════════════════════════════════════════════════
+function setDocType(btn) {
+  document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPrefix=btn.dataset.prefix; currentDocTitle=btn.dataset.title; currentRefLabel=btn.dataset.label;
+  document.getElementById('docTitle').textContent=currentDocTitle;
+  document.getElementById('refLabel').textContent=currentRefLabel;
+  if (!currentId) generateRef();
+}
+
+function generateRef() {
+  const now=new Date(); const ym=now.getFullYear().toString()+String(now.getMonth()+1).padStart(2,'0');
+  const all=loadAll(); const pat=new RegExp('^'+currentPrefix+'-'+ym+'-(\\d+)$'); let maxSeq=0;
+  all.forEach(q => { if(!q.quoteRef) return; const m=q.quoteRef.match(pat); if(m) maxSeq=Math.max(maxSeq,parseInt(m[1],10)); });
+  document.getElementById('quoteRef').value=currentPrefix+'-'+ym+'-'+(maxSeq+1).toString().padStart(3,'0');
+}
+
+// ══════════════════════════════════════════════════════
+//  COLLECT / FILL
+// ══════════════════════════════════════════════════════
+function gv(id) { const el=document.getElementById(id); return el?el.value:''; }
+
+function collectData() {
+  const secs={};
+  SECTIONS.forEach(sec => { secs[sec.id]=[]; document.querySelectorAll('#rows-'+sec.id+' .item-row').forEach(row => { const inp=row.querySelectorAll('input'); const ta=row.querySelector('textarea'); secs[sec.id].push({desc:ta?ta.value:'',qty:inp[0].value,price:inp[1].value}); }); });
+  return {
+    id: currentId||Date.now(), savedAt: new Date().toISOString(),
+    docPrefix:currentPrefix, docTitle:currentDocTitle, docRefLabel:currentRefLabel,
+    companyName:gv('companyName'), issuedName:gv('issuedName'), issuedAddr:gv('issuedAddr'), issuedCity:gv('issuedCity'), issuedEmail:gv('issuedEmail'),
+    jobRef:gv('jobRef'), quoteRef:gv('quoteRef'), quoteDate:gv('quoteDate'), jobType:gv('jobType'),
+    vehReg:gv('vehReg'), vehFleet:gv('vehFleet'), vehYear:gv('vehYear'), vehMake:gv('vehMake'), vehModel:gv('vehModel'), vehVin:gv('vehVin'), vehEngine:gv('vehEngine'), vehBody:gv('vehBody'), vehMileage:gv('vehMileage'), dateWorks:gv('dateWorks'),
+    complaint:gv('complaint'), workDesc:gv('workDesc'), systems:gv('systems'), priority:gv('priority'), technician:gv('technician'), validUntil:gv('validUntil'),
+    gstRate:gv('gstRate'), gstEnabled:document.getElementById('gstEnabled').checked,
+    quoteNotes:gv('quoteNotes'),
+    footerLine1:gv('footerLine1'), footerLine2:gv('footerLine2'), footerLine3:gv('footerLine3'), footerLine3b:gv('footerLine3b'), footerLine4:gv('footerLine4'),
+    sections:secs,
+    faults: getFaults(),
+  };
+}
+
+function sv(id, val) { const el=document.getElementById(id); if(el && val!==undefined) el.value=val; }
+
+function fillData(d) {
+  ['companyName','issuedName','issuedAddr','issuedCity','issuedEmail','jobRef','quoteRef','quoteDate','jobType',
+   'vehReg','vehFleet','vehYear','vehMake','vehModel','vehVin','vehEngine','vehBody','vehMileage','dateWorks',
+   'complaint','workDesc','systems','priority','technician','validUntil',
+   'gstRate','quoteNotes','footerLine1','footerLine2','footerLine3','footerLine3b','footerLine4'
+  ].forEach(f => sv(f, d[f]));
+  if (d.docPrefix) {
+    currentPrefix=d.docPrefix; currentDocTitle=d.docTitle||DOC_TYPES[d.docPrefix]?.title||'QUOTE'; currentRefLabel=d.docRefLabel||DOC_TYPES[d.docPrefix]?.label||'Quote #';
+    document.getElementById('docTitle').textContent=currentDocTitle;
+    document.getElementById('refLabel').textContent=currentRefLabel;
+    document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.toggle('active',b.dataset.prefix===d.docPrefix));
+  }
+  if (d.gstEnabled!==undefined) document.getElementById('gstEnabled').checked=d.gstEnabled;
+  loadFaults(d.faults||[]);
+  buildSections(d.sections||{});
+  recalcAll();
+}
+
+// ══════════════════════════════════════════════════════
+//  LOCALSTORAGE
+// ══════════════════════════════════════════════════════
+function loadAll() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]; } catch { return []; } }
+
+function saveQuote() {
+  const data=collectData(); currentId=data.id;
+  const all=loadAll(); const idx=all.findIndex(q=>q.id===data.id);
+  if(idx>=0) all[idx]=data; else all.push(data);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+  toast('Quote saved','ok'); renderSavedList();
+  document.getElementById('dupBtn').style.display='';
+}
+
+function loadQuote(id) {
+  const q=loadAll().find(q=>q.id===id); if(!q) return;
+  currentId=q.id; fillData(q);
+  document.getElementById('savedPanel').classList.remove('open');
+  document.getElementById('dupBtn').style.display='';
+  toast('Quote loaded','ok');
+}
+
+function deleteQuote(id, e) {
+  e.stopPropagation();
+  if(!confirm('Delete this quote?')) return;
+  const all=loadAll().filter(q=>q.id!==id); localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+  if(currentId===id) newQuote(); renderSavedList(); toast('Deleted','err');
+}
+
+function newQuote() {
+  currentId=null;
+  document.querySelectorAll('.quote input:not([type=checkbox]), .quote textarea, .quote select').forEach(el => { if(el.id!=='gstRate') el.value=''; });
+  document.getElementById('gstRate').value=10; document.getElementById('gstEnabled').checked=true;
+  document.getElementById('quoteDate').value=new Date().toLocaleDateString('en-AU');
+  document.getElementById('dateWorks').value=new Date().toISOString().split('T')[0];
+  sv('companyName','MOONEE VALLEY BUS LINES');
+  sv('footerLine1','Moonee Valley Bus Lines Pty. Ltd.');
+  sv('footerLine2','6 Tullamarine Park Road, Tullamarine VIC 3043  —  PO Box 773 Tullamarine 3043');
+  sv('footerLine3','Ph: 03 9310 5286   M: 0411 132 359');
+  sv('footerLine3b','E: daniel.higginson@mooneevalleybus.com.au');
+  sv('footerLine4','ABN 41 004 679 378');
+  sv('validUntil','30 days from date of issue');
+  currentPrefix='WQ'; currentDocTitle='QUOTE'; currentRefLabel='Quote #';
+  document.getElementById('docTitle').textContent='QUOTE';
+  document.getElementById('refLabel').textContent='Quote #';
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.prefix==='WQ'));
+  loadFaults([]);
+  buildSections({});
+  generateRef();
+  document.getElementById('savedPanel').classList.remove('open');
+  document.getElementById('dupBtn').style.display='none';
+  document.getElementById('rego-select').value='';
+  document.getElementById('cust-select').value='';
+  document.getElementById('vehicle-badge').classList.remove('visible');
+  document.getElementById('customer-badge').classList.remove('visible');
+}
+
+// ══════════════════════════════════════════════════════
+//  SAVED PANEL
+// ══════════════════════════════════════════════════════
+function toggleSaved() { const p=document.getElementById('savedPanel'); p.classList.toggle('open'); if(p.classList.contains('open')) renderSavedList(); }
+
+function renderSavedList() {
+  const list=document.getElementById('savedList'); const all=loadAll();
+  if(!all.length) { list.innerHTML='<div class="no-saved">No saved quotes yet.</div>'; return; }
+  list.innerHTML='';
+  [...all].reverse().forEach(q => {
+    const div=document.createElement('div'); div.className='saved-item'; div.onclick=()=>loadQuote(q.id);
+    const date=q.savedAt?new Date(q.savedAt).toLocaleDateString('en-AU'):q.quoteDate;
+    div.innerHTML=`
+      <div class="saved-item-info">
+        <div class="saved-item-ref">${q.quoteRef||'No Ref'} — ${q.issuedName||'No Client'} <span style="font-size:10px;opacity:0.6;font-weight:400">${q.docTitle||'QUOTE'}</span></div>
+        <div class="saved-item-meta">${q.vehReg?q.vehReg+' · ':''}${q.vehModel||''} · Saved ${date}</div>
+      </div>
+      <button class="saved-item-copy" onclick="duplicateQuote(${q.id},event)">Copy</button>
+      <button class="saved-item-del" onclick="deleteQuote(${q.id},event)">Delete</button>`;
+    list.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  DUPLICATE
+// ══════════════════════════════════════════════════════
+function duplicateQuote(sourceId, e) { e.stopPropagation(); const src=loadAll().find(q=>q.id===sourceId); if(src) showDupModal(src); }
+function duplicateCurrent() { saveQuote(); const src=loadAll().find(q=>q.id===currentId); if(src) showDupModal(src); else toast('Save first','inf'); }
+
+function showDupModal(source) {
+  const existing=document.getElementById('dupModal'); if(existing) existing.remove();
+  const ym=new Date().getFullYear().toString()+String(new Date().getMonth()+1).padStart(2,'0');
+  const types=[{prefix:'WQ',title:'QUOTE',label:'Quote #'},{prefix:'WI',title:'INVOICE',label:'Invoice #'},{prefix:'WE',title:'ESTIMATE',label:'Estimate #'}];
+  const overlay=document.createElement('div'); overlay.id='dupModal';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(13,33,55,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;';
+  const btns=types.map(t=>`<button class="dup-pick" data-prefix="${t.prefix}" data-title="${t.title}" data-label="${t.label}" style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;color:#d4e8f4;background:${source.docPrefix===t.prefix?'rgba(26,107,138,0.4)':'rgba(255,255,255,0.06)'};border:1px solid ${source.docPrefix===t.prefix?'#1a6b8a':'rgba(255,255,255,0.12)'};padding:11px 16px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;width:100%;">${t.title} <span style="font-size:10px;color:#567a8d;font-family:monospace;">${t.prefix}-${ym}-NNN</span></button>`).join('');
+  overlay.innerHTML=`<div style="background:#1a2c42;padding:28px 32px;width:340px;border-top:3px solid #1a6b8a;"><div style="font-family:'Roboto Condensed',sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#6aadca;margin-bottom:6px;">Duplicate As</div><div style="font-size:11px;color:#567a8d;margin-bottom:18px;">Copying from <b style="color:#aac8da;">${source.quoteRef||'this document'}</b>. Original kept unchanged.</div><div style="display:flex;flex-direction:column;gap:8px;">${btns}</div><button id="dupCancel" style="margin-top:14px;font-family:Inter,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#567a8d;padding:7px 14px;cursor:pointer;width:100%;">Cancel</button></div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('.dup-pick').forEach(btn => { btn.onclick=()=>{ overlay.remove(); finishDuplicate(source,{prefix:btn.dataset.prefix,title:btn.dataset.title,label:btn.dataset.label}); }; });
+  document.getElementById('dupCancel').onclick=()=>overlay.remove();
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+}
+
+function finishDuplicate(source, choice) {
+  const copy=JSON.parse(JSON.stringify(source)); copy.id=Date.now(); copy.savedAt=new Date().toISOString(); copy.quoteDate=new Date().toLocaleDateString('en-AU');
+  copy.docPrefix=choice.prefix; copy.docTitle=choice.title; copy.docRefLabel=choice.label;
+  const all=loadAll(); const ym=new Date().getFullYear().toString()+String(new Date().getMonth()+1).padStart(2,'0');
+  const pat=new RegExp('^'+choice.prefix+'-'+ym+'-(\\d+)$'); let maxSeq=0;
+  all.forEach(q=>{if(!q.quoteRef)return;const m=q.quoteRef.match(pat);if(m)maxSeq=Math.max(maxSeq,parseInt(m[1],10));});
+  copy.quoteRef=choice.prefix+'-'+ym+'-'+(maxSeq+1).toString().padStart(3,'0');
+  all.push(copy); localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+  currentId=copy.id; fillData(copy); document.getElementById('dupBtn').style.display='';
+  renderSavedList(); document.getElementById('savedPanel').classList.remove('open');
+  toast('Created '+copy.quoteRef+' from '+source.quoteRef,'ok');
+}
+
+// ══════════════════════════════════════════════════════
+//  JSON EXPORT / IMPORT
+// ══════════════════════════════════════════════════════
+function exportJSON() {
+  const all=loadAll(); if(!all.length){toast('No saved quotes','inf');return;}
+  const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='workshop-quotes-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(a.href);
+  toast('Exported '+all.length+' quote'+(all.length>1?'s':''),'ok');
+}
+function importJSON(e) {
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader(); reader.onload=evt=>{try{const incoming=JSON.parse(evt.target.result);const arr=Array.isArray(incoming)?incoming:[incoming];const existing=loadAll();let added=0,updated=0;arr.forEach(q=>{const idx=existing.findIndex(x=>x.id===q.id);if(idx>=0){existing[idx]=q;updated++;}else{existing.push(q);added++;}});localStorage.setItem(STORAGE_KEY,JSON.stringify(existing));toast(`Imported: ${added} new, ${updated} updated`,'ok');renderSavedList();}catch{toast('Invalid file','err');}e.target.value='';};
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════
+function togglePanel(id) { const p=document.getElementById(id); p.classList.toggle('open'); if(p.classList.contains('open')) p.scrollIntoView({behavior:'smooth'}); }
+function flash(id, msg) { const el=document.getElementById(id); if(!el) return; el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2000); }
+function toast(msg, type='ok') { const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show '+type; setTimeout(()=>el.className='toast',2500); }
+
+// ══════════════════════════════════════════════════════
+//  FAULT CODES
+// ══════════════════════════════════════════════════════
+let faultCount = 0;
+
+function addFaultRow(data = {}) {
+  faultCount++;
+  const n = faultCount;
+  const tr = document.createElement('tr');
+  tr.id = 'fr-' + n;
+  tr.innerHTML = `
+    <td style="text-align:center;color:var(--muted);font-size:11px;padding:6px 4px;white-space:nowrap;">${n}</td>
+    <td><input class="mono" type="text" placeholder="e.g. SPN 157 FMI 18" value="${esc2(data.code||'')}" style="font-family:monospace;font-size:12px;"></td>
+    <td><input type="text" placeholder="Description or system affected" value="${esc2(data.desc||'')}"></td>
+    <td><select>
+      <option value="">— Status —</option>
+      <option${data.status==='Active'?' selected':''}>Active</option>
+      <option${data.status==='Cleared'?' selected':''}>Cleared</option>
+      <option${data.status==='Intermittent'?' selected':''}>Intermittent</option>
+      <option${data.status==='Monitored'?' selected':''}>Monitored</option>
+    </select></td>
+    <td><button class="fault-del" onclick="delFaultRow('fr-${n}')">✕</button></td>`;
+  document.getElementById('fault-body').appendChild(tr);
+}
+
+function esc2(v) { return String(v||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function delFaultRow(id) { const el=document.getElementById(id); if(el) el.remove(); }
+
+function getFaults() {
+  const faults = [];
+  document.querySelectorAll('#fault-body tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const sel    = tr.querySelector('select');
+    const code   = inputs[0] ? inputs[0].value.trim() : '';
+    const desc   = inputs[1] ? inputs[1].value.trim() : '';
+    const status = sel ? sel.value : '';
+    if (code || desc) faults.push({ code, desc, status });
+  });
+  return faults;
+}
+
+function loadFaults(faults = []) {
+  document.getElementById('fault-body').innerHTML = '';
+  faultCount = 0;
+  if (faults.length) faults.forEach(f => addFaultRow(f));
+  else addFaultRow();
+}
+
+// ══════════════════════════════════════════════════════
+//  PDF EXPORT
+// ══════════════════════════════════════════════════════
+function exportPDF() {
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const PW=210,ML=12,MR=12,CW=PW-ML-MR;
+  const NAVY=[13,33,55],TEAL=[26,107,138],TEALLT=[208,232,240],SECBG=[228,236,241],SUBT=[204,221,230];
+  const WHITE=[255,255,255],BLACK=[26,37,51],MUTED=[107,122,141],LIGHT=[240,244,247];
+  let y=0;
+
+  // Collect values
+  const companyName=(gv('companyName')||'MOONEE VALLEY BUS LINES').toUpperCase();
+  const docTitle=currentDocTitle||'QUOTE';
+  const docRefLbl=(currentRefLabel||'Quote #').replace(' #','');
+  const quoteRef=gv('quoteRef'), quoteDate=gv('quoteDate'), jobType=gv('jobType');
+  const issuedName=gv('issuedName'),issuedAddr=gv('issuedAddr'),issuedCity=gv('issuedCity'),issuedEmail=gv('issuedEmail'),jobRef=gv('jobRef');
+  const vehReg=gv('vehReg'),vehFleet=gv('vehFleet'),vehYear=gv('vehYear'),vehMake=gv('vehMake'),vehModel=gv('vehModel'),vehVin=gv('vehVin'),vehEngine=gv('vehEngine'),vehBody=gv('vehBody'),vehMileage=gv('vehMileage'),dateWorks=gv('dateWorks');
+  const complaint=gv('complaint'),workDesc=gv('workDesc'),systems=gv('systems'),priority=gv('priority'),technician=gv('technician'),validUntil=gv('validUntil');
+  const fl1=gv('footerLine1'),fl2=gv('footerLine2'),fl3=[gv('footerLine3'),gv('footerLine3b')].filter(Boolean).join('   '),fl4=gv('footerLine4');
+
+  const issuedLines=[issuedName,issuedAddr,issuedCity,issuedEmail].filter(Boolean);
+  const hdrH=Math.max(46,22+issuedLines.length*4.5+8);
+
+  // Header
+  doc.setFillColor(...NAVY); doc.rect(0,0,PW,hdrH,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...WHITE);
+  doc.text(companyName,ML,14);
+  let hiy=21;
+  if(issuedName){doc.setFontSize(7.5);doc.setTextColor(120,160,180);doc.text('Issued To:',ML,hiy);hiy+=4.5;}
+  doc.setFontSize(8.5);doc.setTextColor(200,220,232);
+  issuedLines.forEach(l=>{doc.text(l,ML,hiy);hiy+=4.2;});
+  if(jobRef){hiy+=1;doc.setFontSize(7.5);doc.setTextColor(120,160,180);doc.text('Reference No.:',ML,hiy);hiy+=4;doc.setFontSize(8.5);doc.setTextColor(200,220,232);doc.text(jobRef,ML,hiy);}
+
+  doc.setFont('helvetica','bold');doc.setFontSize(28);doc.setTextColor(...WHITE);
+  doc.text(docTitle,PW-MR,20,{align:'right'});
+  const mRow=(lbl,val,yy)=>{if(!val)return;doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(86,122,141);doc.text(lbl+':',PW-MR-52,yy);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(212,232,244);doc.text(val,PW-MR,yy,{align:'right'});};
+  mRow(docRefLbl,quoteRef,28);mRow('Date',quoteDate,34);mRow('Job Type',jobType,40);if(vehReg)mRow('Registration',vehReg,hdrH-4);
+  y=hdrH;
+
+  // Teal stripe
+  doc.setFillColor(...TEAL);doc.rect(0,y,PW,2,'F');y+=2;
+
+  // Vehicle info band
+  const vehLines=[vehMake&&vehModel?`${vehMake} ${vehModel}`:vehMake||vehModel,'',vehVin?'VIN: '+vehVin:'',vehEngine?'Engine: '+vehEngine:'',vehBody?'Body: '+vehBody:'',vehFleet?'Bus No.: '+vehFleet:'',vehMileage?'Odometer: '+vehMileage:'',(dateWorks?'Date of Works: '+new Date(dateWorks).toLocaleDateString('en-AU'):'')].filter(Boolean);
+  const jobLines=[complaint?'Fault/Complaint: '+complaint:'',workDesc?'Work to Carry Out: '+workDesc:'',systems?'Systems Affected: '+systems:'',priority?'Priority: '+priority:'',technician?'Quoted By: '+technician:''].filter(Boolean);
+
+  const infoH=Math.max(32, Math.max(vehLines.length,jobLines.length)*4.2+10);
+  doc.setFillColor(...LIGHT);doc.rect(0,y,PW,infoH,'F');
+  doc.setDrawColor(197,206,216);doc.setLineWidth(0.3);doc.line(ML+CW/2,y,ML+CW/2,y+infoH);
+
+  const infoBlock=(label,lines,x,w)=>{
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...TEAL);doc.text(label.toUpperCase(),x+2,y+5);
+    let iy=y+10;doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...BLACK);
+    lines.forEach(l=>{const wrapped=doc.splitTextToSize(l,w-4);wrapped.forEach(wl=>{if(iy<y+infoH-1){doc.text(wl,x+2,iy);iy+=4;}});});
+  };
+  infoBlock('Vehicle Details',vehLines,ML,CW/2);
+  infoBlock('Job Details',jobLines,ML+CW/2+2,CW/2);
+  y+=infoH;
+
+  doc.setFillColor(...NAVY);doc.rect(0,y,PW,1.5,'F');y+=1.5;
+
+  // Page break helpers (defined early so fault table can use them)
+  const PAGE_H=297,FOOTER_H=30,BODY_MAX=PAGE_H-FOOTER_H;
+  let checkBreak2=(n)=>{};  // placeholder, replaced after drawPageFooter defined
+  const drawPageFooter=()=>{const fy=PAGE_H-26;doc.setFillColor(...NAVY);doc.rect(0,fy,PW,26,'F');doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...TEALLT);if(fl1)doc.text(fl1,PW/2,fy+5,{align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(168,196,212);if(fl2)doc.text(fl2,PW/2,fy+10,{align:'center',maxWidth:CW});if(fl3)doc.text(fl3,PW/2,fy+15,{align:'center',maxWidth:CW});doc.setTextColor(86,122,141);if(fl4)doc.text(fl4,PW/2,fy+19,{align:'center'});};
+  const drawColHeaders=()=>{doc.setFillColor(...NAVY);doc.rect(0,y,PW,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...WHITE);cols.forEach(c=>doc.text(c.label,c.align==='right'?c.x+c.w:c.align==='center'?c.x+c.w/2:c.x,y+5.5,{align:c.align}));y+=8;};
+  const newPage=()=>{drawPageFooter();doc.addPage();y=8;drawColHeaders();};
+  const checkBreak=(needed)=>{if(y+needed>BODY_MAX)newPage();};
+
+  // Fault codes table (if any)
+  const faultRows=getFaults();
+  if(faultRows.length){
+    checkBreak2=(needed)=>{if(y+needed>BODY_MAX){drawPageFooter();doc.addPage();y=8;}};
+    checkBreak2(10+faultRows.length*6.5);
+    doc.setFillColor(...SECBG);doc.rect(0,y,PW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);
+    doc.text('FAULT CODES',ML+4,y+5); y+=7;
+    // Fault table header
+    const FC=[22,60,CW-22-60-30,30];
+    doc.setFillColor(22,51,82);doc.rect(0,y,PW,6,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...WHITE);
+    doc.text('#',ML+2,y+4.2);
+    doc.text('Fault Code',ML+FC[0]+2,y+4.2);
+    doc.text('Description / System',ML+FC[0]+FC[1]+2,y+4.2);
+    doc.text('Status',PW-MR,y+4.2,{align:'right'});
+    y+=6;
+    faultRows.forEach((f,i)=>{
+      const rowH=6.5;
+      if(i%2===0){doc.setFillColor(...LIGHT);doc.rect(0,y,PW,rowH,'F');}
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MUTED);
+      doc.text(String(i+1),ML+6,y+4.5,{align:'center'});
+      doc.setTextColor(...BLACK);doc.setFont('helvetica','bold');
+      if(f.code)doc.text(f.code,ML+FC[0]+2,y+4.5);
+      doc.setFont('helvetica','normal');
+      const dlines=f.desc?doc.splitTextToSize(f.desc,FC[2]-4):[];
+      if(dlines.length)doc.text(dlines[0],ML+FC[0]+FC[1]+2,y+4.5);
+      doc.setTextColor(...MUTED);
+      if(f.status)doc.text(f.status,PW-MR,y+4.5,{align:'right'});
+      doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.line(0,y+rowH,PW,y+rowH);
+      y+=rowH;
+    });
+    y+=4;
+  }
+
+  // Column headers for line items
+  doc.setFillColor(...NAVY);doc.rect(0,y,PW,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...WHITE);
+  const C_ITEM=12,C_QTY=34,C_UNIT=32,C_TOTAL=32,C_DESC=CW-C_ITEM-C_QTY-C_UNIT-C_TOTAL;
+  const cols=[
+    {label:'Item',x:ML,w:C_ITEM,align:'center'},
+    {label:'Description',x:ML+C_ITEM,w:C_DESC,align:'left'},
+    {label:'QTY/Hrs',x:ML+C_ITEM+C_DESC,w:C_QTY,align:'right'},
+    {label:'Unit Price',x:ML+C_ITEM+C_DESC+C_QTY,w:C_UNIT,align:'right'},
+    {label:'Total',x:ML+C_ITEM+C_DESC+C_QTY+C_UNIT,w:C_TOTAL,align:'right'},
+  ];
+  cols.forEach(c=>doc.text(c.label,c.align==='right'?c.x+c.w:c.align==='center'?c.x+c.w/2:c.x,y+5.5,{align:c.align}));
+  y+=8;
+
+
+  // Sections
+  let grandEx=0;
+  SECTIONS.forEach(sec=>{
+    checkBreak(14);
+    doc.setFillColor(...SECBG);doc.rect(0,y,PW,7,'F');doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(sec.label,ML+12,y+5);y+=7;
+    const rd=document.getElementById('rows-'+sec.id);let secTotal=0,rowNum=0;
+    rd.querySelectorAll('.item-row').forEach(row=>{
+      const inp=row.querySelectorAll('input');const ta=row.querySelector('textarea');
+      const desc=ta?ta.value:'';const qty=parseFloat(inp[0].value)||0;const price=parseFloat(inp[1].value)||0;
+      if(!desc&&!qty&&!price)return;
+      rowNum++;secTotal+=qty*price;
+      doc.setFont('helvetica','normal');doc.setFontSize(8);
+      const descLines=desc?doc.splitTextToSize(desc,C_DESC-4):[''];
+      const rowH=Math.max(7,descLines.length*4.2+4);
+      checkBreak(rowH);
+      if(rowNum%2===0){doc.setFillColor(...LIGHT);doc.rect(0,y,PW,rowH,'F');}
+      doc.setTextColor(...MUTED);doc.text(String(rowNum),ML+6,y+rowH/2+1,{align:'center'});
+      doc.setTextColor(...BLACK);doc.text(descLines,ML+C_ITEM+2,y+4.5,{lineHeightFactor:1.3});
+      const numY=y+4.5;
+      if(qty)doc.text(String(qty),ML+C_ITEM+C_DESC+C_QTY-1,numY,{align:'right'});
+      if(price)doc.text('$'+price.toFixed(2),ML+C_ITEM+C_DESC+C_QTY+C_UNIT-1,numY,{align:'right'});
+      if(qty&&price)doc.text('$'+(qty*price).toFixed(2),ML+C_ITEM+C_DESC+C_QTY+C_UNIT+C_TOTAL-1,numY,{align:'right'});
+      doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.line(0,y+rowH,PW,y+rowH);y+=rowH;
+    });
+    checkBreak(7);
+    doc.setFillColor(...SUBT);doc.rect(0,y,PW,7,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(22,51,82);
+    doc.text(sec.subtotalLabel.toUpperCase(),PW-MR-C_TOTAL-2,y+5,{align:'right'});
+    doc.setFontSize(9.5);doc.setTextColor(...NAVY);doc.text(fmtAUD(secTotal),PW-MR,y+5,{align:'right'});
+    doc.setDrawColor(...TEAL);doc.setLineWidth(0.5);doc.line(0,y+7,PW,y+7);
+    grandEx+=secTotal;y+=7;
+  });
+
+  // Totals
+  checkBreak(40);y+=2;
+  doc.setFillColor(...WHITE);doc.setDrawColor(197,206,216);doc.setLineWidth(0.3);
+  const gstOn=document.getElementById('gstEnabled').checked;const gstRate=parseFloat(gv('gstRate'))||0;const gstAmt=gstOn?grandEx*(gstRate/100):0;
+  const tRow=(lbl,val,isGrand)=>{if(isGrand){doc.setFillColor(...NAVY);doc.rect(0,y,PW,10,'F');doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(170,200,218);doc.text(lbl,PW-MR-42,y+7,{align:'right'});doc.setFontSize(13);doc.setTextColor(...WHITE);doc.text(val,PW-MR,y+7,{align:'right'});y+=10;}else{doc.line(0,y,PW,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...MUTED);doc.text(lbl,PW-MR-42,y+6,{align:'right'});doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.text(val,PW-MR,y+6,{align:'right'});y+=8;}};
+  tRow('Subtotal',fmtAUD(grandEx),false);
+  if(gstOn)tRow(`GST (${gstRate}%)`,fmtAUD(gstAmt),false);
+  tRow('TOTAL DUE',fmtAUD(grandEx+gstAmt),true);
+
+  // Notes + validity
+  const notes=gv('quoteNotes'); if(notes){doc.setFont('helvetica','normal');doc.setFontSize(8);const nl=doc.splitTextToSize(notes,CW);checkBreak(8+nl.length*4.5+3);y+=4;doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...TEAL);doc.text('NOTES & TERMS',ML,y);y+=4;doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MUTED);doc.text(nl,ML,y);y+=nl.length*4.5+3;}
+  if(validUntil){checkBreak(8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MUTED);doc.text('Quote valid: '+validUntil,ML,y+4);y+=8;}
+
+  drawPageFooter();
+  const ref=gv('quoteRef')||'quote';const client=(gv('issuedName')||'').replace(/\s+/g,'-');
+  const _spPdfB64 = doc.output('datauristring').split(',')[1];
+  doc.save(`${ref}${client?'-'+client:''}.pdf`);
+  toast('PDF saved','ok');
+  return _spPdfB64;
+}
+
+// ══════════════════════════════════════════════════════
+//  WORD EXPORT
+// ══════════════════════════════════════════════════════
+function exportWord() {
+  try {
+    const docxLib=window.docx;
+    if(!docxLib){toast('Word library not loaded — try again','err');return;}
+    const {Document,Packer,Paragraph,Table,TableRow,TableCell,TextRun,AlignmentType,BorderStyle,ShadingType,WidthType,TableLayoutType}=docxLib;
+    const gstOn=document.getElementById('gstEnabled').checked;
+    const gstRate=parseFloat(gv('gstRate'))||0;
+    const NAVY_HEX='0D2137',TEAL_HEX='1A6B8A',SECBG='E4ECF1',SUBT='CCE5EF';
+
+    const cell=(text,opts={})=>new TableCell({children:[new Paragraph({children:[new TextRun({text:String(text||''),bold:opts.bold||false,color:opts.color||'1A2533',size:opts.size||20})],alignment:opts.align||AlignmentType.LEFT})],shading:opts.bg?{type:ShadingType.SOLID,color:opts.bg}:undefined,borders:{top:{style:BorderStyle.SINGLE,size:1,color:'C5CED8'},bottom:{style:BorderStyle.SINGLE,size:1,color:'C5CED8'},left:{style:BorderStyle.SINGLE,size:1,color:'C5CED8'},right:{style:BorderStyle.SINGLE,size:1,color:'C5CED8'}},margins:{top:60,bottom:60,left:80,right:80},columnSpan:opts.span||1});
+    const para=(text,opts={})=>new Paragraph({children:[new TextRun({text,bold:opts.bold,size:opts.size||20,color:opts.color||'1A2533'})],alignment:opts.align||AlignmentType.LEFT,spacing:{after:opts.after||80}});
+
+    const tableRows=[];
+    tableRows.push(new TableRow({children:[cell('Item',{bold:true,color:'FFFFFF',bg:NAVY_HEX,align:AlignmentType.CENTER}),cell('Description',{bold:true,color:'FFFFFF',bg:NAVY_HEX}),cell('QTY/Hrs',{bold:true,color:'FFFFFF',bg:NAVY_HEX,align:AlignmentType.RIGHT}),cell('Unit Price',{bold:true,color:'FFFFFF',bg:NAVY_HEX,align:AlignmentType.RIGHT}),cell('Total',{bold:true,color:'FFFFFF',bg:NAVY_HEX,align:AlignmentType.RIGHT})]}));
+    let grandEx=0;
+    SECTIONS.forEach(sec=>{
+      tableRows.push(new TableRow({children:[cell(sec.label,{bold:true,color:NAVY_HEX,bg:SECBG,span:5,size:22})]}));
+      let secTotal=0,rowNum=0;
+      document.querySelectorAll('#rows-'+sec.id+' .item-row').forEach(row=>{
+        const inp=row.querySelectorAll('input');const ta=row.querySelector('textarea');
+        const desc=ta?ta.value:'';const qty=parseFloat(inp[0].value)||0;const price=parseFloat(inp[1].value)||0;
+        if(!desc&&!qty&&!price)return; rowNum++;const rt=qty*price;secTotal+=rt;
+        tableRows.push(new TableRow({children:[cell(String(rowNum),{align:AlignmentType.CENTER,color:'8A8EA0'}),cell(desc),cell(qty?String(qty):'',{align:AlignmentType.RIGHT}),cell(price?fmtAUD(price):'',{align:AlignmentType.RIGHT}),cell(rt>0?fmtAUD(rt):'',{align:AlignmentType.RIGHT,bold:true})]}));
+      });
+      grandEx+=secTotal;
+      tableRows.push(new TableRow({children:[cell(sec.subtotalLabel.toUpperCase(),{bold:true,color:'163352',bg:SUBT,span:4,align:AlignmentType.RIGHT}),cell(fmtAUD(secTotal),{bold:true,color:NAVY_HEX,bg:SUBT,align:AlignmentType.RIGHT})]}));
+    });
+    const gstAmt=gstOn?grandEx*(gstRate/100):0;
+    tableRows.push(new TableRow({children:[cell('Subtotal',{span:4,align:AlignmentType.RIGHT,color:'6B7A8D'}),cell(fmtAUD(grandEx),{align:AlignmentType.RIGHT,bold:true})]}));
+    if(gstOn)tableRows.push(new TableRow({children:[cell('GST ('+gstRate+'%)',{span:4,align:AlignmentType.RIGHT,color:'6B7A8D'}),cell(fmtAUD(gstAmt),{align:AlignmentType.RIGHT,bold:true})]}));
+    tableRows.push(new TableRow({children:[cell('TOTAL DUE',{span:4,align:AlignmentType.RIGHT,bold:true,color:'FFFFFF',bg:NAVY_HEX,size:26}),cell(fmtAUD(grandEx+gstAmt),{align:AlignmentType.RIGHT,bold:true,color:'FFFFFF',bg:NAVY_HEX,size:26})]}));
+
+    const table=new Table({rows:tableRows,width:{size:100,type:WidthType.PERCENTAGE},layout:TableLayoutType.FIXED});
+
+    const vehicleInfo=[gv('vehMake')&&gv('vehModel')?gv('vehMake')+' '+gv('vehModel'):'',gv('vehVin')?'VIN: '+gv('vehVin'):'',gv('vehEngine')?'Engine: '+gv('vehEngine'):'',gv('vehMileage')?'Odometer: '+gv('vehMileage'):'',gv('vehReg')?'Rego: '+gv('vehReg'):'',gv('vehFleet')?'Bus No.: '+gv('vehFleet'):'',gv('dateWorks')?'Date of Works: '+gv('dateWorks'):''].filter(Boolean);
+    const jobInfo=[gv('complaint')?'Complaint: '+gv('complaint'):'',gv('workDesc')?'Work to Carry Out: '+gv('workDesc'):'',gv('systems')?'Systems: '+gv('systems'):'',gv('priority')?'Priority: '+gv('priority'):'',gv('technician')?'Quoted By: '+gv('technician'):'',gv('validUntil')?'Valid Until: '+gv('validUntil'):''].filter(Boolean);
+
+    const docObj=new Document({sections:[{properties:{},children:[
+      para(gv('companyName')||'MOONEE VALLEY BUS LINES',{bold:true,size:40,color:NAVY_HEX}),
+      para('WORKSHOP '+currentDocTitle,{bold:true,size:28,color:TEAL_HEX}),
+      para(''),
+      para((currentRefLabel||'Quote #')+': '+(gv('quoteRef')||'—')+'     Date: '+(gv('quoteDate')||'—'),{size:18,color:'6B7A8D'}),
+      ...(gv('jobType')?[para('Job Type: '+gv('jobType'),{size:18,color:'6B7A8D'})]:[]),
+      para(''),
+      para('ISSUED TO',{bold:true,size:16,color:TEAL_HEX,after:40}),
+      ...[gv('issuedName'),gv('issuedAddr'),gv('issuedCity'),gv('issuedEmail')].filter(Boolean).map(l=>para(l,{size:20})),
+      ...(gv('jobRef')?[para('Reference No.: '+gv('jobRef'),{size:18,color:'6B7A8D'})]:[]),
+      para(''),
+      para('VEHICLE DETAILS',{bold:true,size:16,color:TEAL_HEX,after:40}),
+      ...vehicleInfo.map(l=>para(l,{size:20})),
+      para(''),
+      para('JOB DETAILS',{bold:true,size:16,color:TEAL_HEX,after:40}),
+      ...jobInfo.map(l=>para(l,{size:20})),
+      para(''),
+      // Fault codes table
+      ...(() => {
+        const faults = getFaults();
+        if (!faults.length) return [];
+        const faultTableRows = [
+          new TableRow({children:[
+            cell('#',{bold:true,color:'FFFFFF',bg:NAVY_HEX,align:AlignmentType.CENTER}),
+            cell('Fault Code',{bold:true,color:'FFFFFF',bg:NAVY_HEX}),
+            cell('Description / System',{bold:true,color:'FFFFFF',bg:NAVY_HEX}),
+            cell('Status',{bold:true,color:'FFFFFF',bg:NAVY_HEX,align:AlignmentType.RIGHT}),
+          ]}),
+          ...faults.map((f,i)=>new TableRow({children:[
+            cell(String(i+1),{align:AlignmentType.CENTER,color:'8A8EA0'}),
+            cell(f.code||'',{bold:true}),
+            cell(f.desc||''),
+            cell(f.status||'',{color:'567A8D'}),
+          ]})),
+        ];
+        const faultTable = new Table({rows:faultTableRows,width:{size:100,type:WidthType.PERCENTAGE},layout:TableLayoutType.FIXED});
+        return [para('FAULT CODES',{bold:true,size:16,color:TEAL_HEX,after:40}),faultTable,para('')];
+      })(),
+      table,
+      para(''),
+      ...(gv('quoteNotes')?[para('NOTES & TERMS',{bold:true,size:16,color:TEAL_HEX,after:40}),para(gv('quoteNotes'),{size:18,color:'6B7A8D'}),para('')]:[]),
+      para([gv('footerLine1'),gv('footerLine2'),gv('footerLine3'),gv('footerLine3b'),gv('footerLine4')].filter(Boolean).join('  |  '),{size:16,color:'6B7A8D',align:AlignmentType.CENTER}),
+    ]}]});
+
+    Packer.toBlob(docObj).then(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(gv('quoteRef')||'quote')+'-'+(gv('issuedName')||'quote').replace(/\s+/g,'-')+'.docx';a.click();URL.revokeObjectURL(a.href);toast('Word doc saved','ok');});
+  } catch(err) { console.error(err); toast('Word export failed: '+err.message,'err'); }
+}
+
+// ══════════════════════════════════════════════════════
+//  EXCEL EXPORT
+// ══════════════════════════════════════════════════════
+function exportExcel() {
+  const wb=XLSX.utils.book_new(); const rows=[];
+  rows.push([gv('companyName')||'MOONEE VALLEY BUS LINES','','','','']);
+  rows.push(['WORKSHOP '+currentDocTitle,'','','','']);
+  rows.push([]);
+  rows.push([(currentRefLabel||'Quote #')+':',gv('quoteRef'),'Date:',gv('quoteDate'),'']);
+  if(gv('jobType')) rows.push(['Job Type:',gv('jobType'),'','','']);
+  rows.push([]);
+  rows.push(['Issued To:',gv('issuedName'),'','','']);
+  if(gv('issuedAddr')) rows.push(['',gv('issuedAddr'),'','','']);
+  if(gv('issuedCity')) rows.push(['',gv('issuedCity'),'','','']);
+  if(gv('issuedEmail')) rows.push(['',gv('issuedEmail'),'','','']);
+  if(gv('jobRef')) rows.push(['Reference No.:',gv('jobRef'),'','','']);
+  rows.push([]);
+  rows.push(['Vehicle Details:','','','','']);
+  if(gv('vehMake')) rows.push(['Make:',gv('vehMake'),'Model:',gv('vehModel'),'']);
+  if(gv('vehVin')) rows.push(['VIN:',gv('vehVin'),'','','']);
+  if(gv('vehEngine')) rows.push(['Engine No.:',gv('vehEngine'),'','','']);
+  if(gv('vehReg')) rows.push(['Registration:',gv('vehReg'),'Bus No.:',gv('vehFleet'),'']);
+  if(gv('vehMileage')) rows.push(['Odometer:',gv('vehMileage'),'','','']);
+  if(gv('dateWorks')) rows.push(['Date of Works:',gv('dateWorks'),'','','']);
+  rows.push([]);
+  if(gv('complaint')) rows.push(['Complaint:',gv('complaint'),'','','']);
+  if(gv('workDesc')) rows.push(['Work to Carry Out:',gv('workDesc'),'','','']);
+  if(gv('systems')) rows.push(['Systems Affected:',gv('systems'),'','','']);
+  if(gv('priority')) rows.push(['Priority:',gv('priority'),'','','']);
+  if(gv('technician')) rows.push(['Quoted By:',gv('technician'),'','','']);
+  rows.push([]);
+  rows.push(['Item','Description','QTY / Hrs','Unit Price','Total']);
+  let grandEx=0;
+  SECTIONS.forEach(sec=>{
+    rows.push([sec.label,'','','','']);
+    let secTotal=0,rowNum=0;
+    document.querySelectorAll('#rows-'+sec.id+' .item-row').forEach(row=>{
+      const inp=row.querySelectorAll('input');const ta=row.querySelector('textarea');
+      const desc=ta?ta.value:'';const qty=parseFloat(inp[0].value)||0;const price=parseFloat(inp[1].value)||0;
+      if(!desc&&!qty&&!price)return; rowNum++;secTotal+=qty*price;
+      rows.push([rowNum,desc,qty||'',price||'',(qty&&price)?qty*price:'']);
+    });
+    grandEx+=secTotal;
+    rows.push(['',sec.subtotalLabel,'','',secTotal]); rows.push([]);
+  });
+  const gstOn=document.getElementById('gstEnabled').checked;const gstRate=parseFloat(gv('gstRate'))||0;const gstAmt=gstOn?grandEx*(gstRate/100):0;
+  rows.push(['','Subtotal','','',grandEx]);
+  if(gstOn) rows.push(['','GST ('+gstRate+'%)','','',gstAmt]);
+  rows.push(['','TOTAL DUE','','',grandEx+gstAmt]);
+  if(gv('quoteNotes')){rows.push([]);rows.push(['Notes:',gv('quoteNotes'),'','','']);}
+  if(gv('validUntil')){rows.push([]);rows.push(['Valid Until:',gv('validUntil'),'','','']);}
+  rows.push([]);
+  rows.push([gv('footerLine1'),gv('footerLine2'),gv('footerLine3'),gv('footerLine3b'),gv('footerLine4')]);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:18},{wch:40},{wch:14},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,'Quote');
+  XLSX.writeFile(wb,(gv('quoteRef')||'quote')+'-'+(gv('issuedName')||'quote').replace(/\s+/g,'-')+'.xlsx');
+  toast('Excel saved','ok');
+}
+
+// ── SharePoint ────────────────────────────────────────────────────────────────
+const SP_CLIENT_KEY='mvbl_sp_client', SP_TENANT_KEY='mvbl_sp_tenant';
+const SP_TOKEN_KEY='mvbl_sp_token', SP_TOKEN_EXP='mvbl_sp_token_exp', SP_USER_KEY='mvbl_sp_user';
+const SP_LIBRARY='Workshop System Files';
+const SP_REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'auth-redirect.html';
+const SP_SCOPES = 'https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Files.ReadWrite.All offline_access openid profile';
+
+function spB64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function spPkce(){const v=spB64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return{verifier:v,challenge:spB64url(h)};}
+function spGetToken(){const t=localStorage.getItem(SP_TOKEN_KEY);const e=parseInt(localStorage.getItem(SP_TOKEN_EXP)||'0');return(t&&Date.now()<e)?t:null;}
+
+function submitToSharePoint(){
+  const c=localStorage.getItem(SP_CLIENT_KEY)||'', t=localStorage.getItem(SP_TENANT_KEY)||'';
+  document.getElementById('spClientId').value=c; document.getElementById('spTenantId').value=t;
+  document.getElementById('spProgress').style.display='none';
+  document.getElementById('spProgressBar').style.width='0%'; document.getElementById('spProgressBar').style.background='#0078d4';
+  document.getElementById('spModal').style.display='flex';
+  if(!c||!t){spShowSetup();} else {spHideSetup(); if(spGetToken())spShowSignedIn(localStorage.getItem(SP_USER_KEY)||''); else spShowSignIn();}
+}
+function spCloseModal(){document.getElementById('spModal').style.display='none';}
+function spShowSetup(){document.getElementById('spSetupSection').style.display='block';document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='none';}
+function spHideSetup(){document.getElementById('spSetupSection').style.display='none';}
+function spShowSignIn(){document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='flex';document.getElementById('spSubmitBtn').style.display='none';}
+function spShowSignedIn(user){document.getElementById('spSignedInUser').textContent=user;document.getElementById('spSignedInSection').style.display='block';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='flex';}
+function spSaveConfig(){const c=document.getElementById('spClientId').value.trim(),t=document.getElementById('spTenantId').value.trim();if(!c||!t){alert('Enter both IDs');return;}localStorage.setItem(SP_CLIENT_KEY,c);localStorage.setItem(SP_TENANT_KEY,t);spHideSetup();spShowSignIn();}
+function spSignOut(){[SP_TOKEN_KEY,SP_TOKEN_EXP,SP_USER_KEY,'sp_refresh_token'].forEach(k=>localStorage.removeItem(k));spShowSignIn();}
+async function spSignIn(){
+  const clientId=localStorage.getItem(SP_CLIENT_KEY),tenantId=localStorage.getItem(SP_TENANT_KEY);
+  if(!clientId||!tenantId){spShowSetup();return;}
+  const{verifier,challenge}=await spPkce();
+  const state=spB64url(crypto.getRandomValues(new Uint8Array(16)));
+  sessionStorage.setItem('sp_pkce_verifier',verifier);sessionStorage.setItem('sp_auth_state',state);
+  sessionStorage.setItem('sp_return_url',window.location.href);
+  const u=new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`);
+  u.searchParams.set('client_id',clientId);u.searchParams.set('response_type','code');
+  u.searchParams.set('redirect_uri',SP_REDIRECT_URI);u.searchParams.set('scope',SP_SCOPES);
+  u.searchParams.set('state',state);u.searchParams.set('code_challenge',challenge);
+  u.searchParams.set('code_challenge_method','S256');u.searchParams.set('response_mode','query');
+  u.searchParams.set('prompt','select_account');
+  window.location.href=u.toString();
+}
+async function spGraphCall(method,path,body,isBinary){
+  const token=spGetToken();if(!token)throw new Error('Not signed in');
+  const url='https://graph.microsoft.com/v1.0'+path;
+  const opts={method,headers:{'Authorization':'Bearer '+token,'Content-Type':isBinary?'application/octet-stream':'application/json'}};
+  if(body!==undefined)opts.body=isBinary?body:JSON.stringify(body);
+  const resp=await fetch(url,opts);
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error&&err.error.message)||'Graph error '+resp.status);}
+  const ct=resp.headers.get('content-type')||'';
+  if(resp.status===204||!ct.includes('application/json'))return{};
+  return resp.json();
+}
+function spB64ToBuffer(b64){const bin=atob(b64);const buf=new ArrayBuffer(bin.length);const arr=new Uint8Array(buf);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return buf;}
+function spSetProgress(pct,msg,detail){document.getElementById('spProgressBar').style.width=pct+'%';document.getElementById('spProgressMsg').textContent=msg;if(detail!==undefined)document.getElementById('spProgressDetail').textContent=detail;}
+
+async function spDoSubmit(){
+  if(!spGetToken()){spSignIn();return;}
+  document.getElementById('spProgress').style.display='block';
+  document.getElementById('spSubmitBtn').disabled=true;
+  try{
+    spSetProgress(10,'Generating PDF...','');
+    const pdfB64 = await exportPDF();
+    const pdfBuffer = spB64ToBuffer(pdfB64);
+    spSetProgress(25,'Connecting to SharePoint...','');
+    const siteInfo = await spGraphCall('GET','/sites/mvbus.sharepoint.com:/sites/Workshop-MooneeValleyBusLines:');
+    const siteId = siteInfo.id;
+    const drivesInfo = await spGraphCall('GET',`/sites/${siteId}/drives`);
+    const drive = drivesInfo.value.find(d=>d.name===SP_LIBRARY||(d.webUrl&&d.webUrl.toLowerCase().includes(SP_LIBRARY.toLowerCase().replace(/ /g,'%20'))));
+    if(!drive) throw new Error(`Library "${SP_LIBRARY}" not found`);
+    const driveId = drive.id;
+    // Folder: YYYY-MM-DD_REGO_FLEET
+    const _date = (document.getElementById('quoteDate').value||'').replace(/\//g,'-').replace(/\s/g,'');
+    const _rego = document.getElementById('vehReg').value||'';
+    const _fleet = document.getElementById('vehFleet').value||'';
+    const _safe = s=>(s||'').replace(/[^a-zA-Z0-9]/g,'').trim();
+    const folderName = [_date,_safe(_rego),_safe(_fleet)].filter(Boolean).join('_').substring(0,100) || 'Quote-'+new Date().toISOString().split('T')[0];
+    const fileName = folderName+'.pdf';
+    spSetProgress(45,'Creating folder...','/Workshop Quotes/'+folderName);
+    try{await spGraphCall('POST',`/drives/${driveId}/root/children`,{name:'Workshop Quotes',folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    try{await spGraphCall('POST',`/drives/${driveId}/root:/Workshop Quotes:/children`,{name:folderName,folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    spSetProgress(70,'Uploading PDF...',fileName);
+    await spGraphCall('PUT',`/drives/${driveId}/root:/Workshop Quotes/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}:/content`,pdfBuffer,true);
+    spSetProgress(100,'Submitted successfully!','Saved to Workshop Quotes/'+folderName);
+    document.getElementById('spProgressBar').style.background='#16a34a';
+    setTimeout(()=>{spCloseModal();document.getElementById('spSubmitBtn').disabled=false;},1800);
+  }catch(err){
+    console.error(err);
+    document.getElementById('spSubmitBtn').disabled=false;
+    document.getElementById('spProgressMsg').textContent='Error: '+err.message;
+    document.getElementById('spProgressBar').style.background='#c0292b';
+    document.getElementById('spProgressBar').style.width='100%';
+  }
+}
+
+// Check if returning from Microsoft sign-in
+if(sessionStorage.getItem('sp_just_signed_in')==='1'){
+  sessionStorage.removeItem('sp_just_signed_in');
+  setTimeout(()=>{submitToSharePoint();},400);
+}
+
+</script>
+
+<!-- SharePoint Modal -->
+<div id="spModal" style="display:none;position:fixed;inset:0;background:rgba(13,33,55,0.85);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#1a2c42;padding:28px;width:400px;max-width:95vw;border-top:3px solid #0078d4;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#0078d4;margin-bottom:6px;">Submit to SharePoint</div>
+    <div id="spModalMsg" style="font-size:12px;color:#7aadca;margin-bottom:18px;line-height:1.6;">Uploads PDF to Workshop System Files on SharePoint.</div>
+    <div id="spSetupSection" style="display:none;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#1a6b8a;margin-bottom:10px;font-weight:700;">One-time Setup</div>
+      <div style="margin-bottom:10px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Client ID</div><input id="spClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <div style="margin-bottom:14px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Tenant ID</div><input id="spTenantId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <button onclick="spSaveConfig()" style="width:100%;background:#0078d4;color:#fff;border:none;padding:9px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">Save Settings</button>
+    </div>
+    <div id="spSignedInSection" style="display:none;margin-bottom:14px;">
+      <div style="background:#0d2a1a;border:1px solid #166534;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="color:#22c55e;font-size:14px;">&#10003;</span>
+        <div><div style="font-size:11px;font-weight:600;color:#22c55e;">Signed in to Microsoft</div><div style="font-size:10px;color:#4a7a5a;" id="spSignedInUser"></div></div>
+        <button onclick="spSignOut()" style="margin-left:auto;background:transparent;border:1px solid #166534;color:#4a7a5a;font-size:10px;padding:3px 8px;cursor:pointer;">Sign out</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="spSignInBtn" onclick="spSignIn()" style="flex:1;background:#0078d4;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#128272; Sign in with Microsoft</button>
+      <button id="spSubmitBtn" onclick="spDoSubmit()" style="flex:1;background:#0d7c4e;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#9729; Submit to SharePoint</button>
+      <button onclick="spCloseModal()" style="background:rgba(255,255,255,0.08);color:#6b7a8d;border:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;">Cancel</button>
+    </div>
+    <div id="spProgress" style="display:none;">
+      <div style="font-size:11px;color:#7aadca;margin-bottom:6px;font-weight:600;" id="spProgressMsg">Preparing...</div>
+      <div style="background:#0d2137;height:5px;border-radius:2px;overflow:hidden;margin-bottom:8px;"><div id="spProgressBar" style="height:100%;background:#0078d4;width:0%;transition:width 0.4s;"></div></div>
+      <div id="spProgressDetail" style="font-size:10px;color:#4a6070;"></div>
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+      <button onclick="spShowSetup()" style="background:transparent;border:none;color:#344d5e;font-size:10px;cursor:pointer;text-decoration:underline;">&#9881; Change settings</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Card System — MVBL</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0d2137;--navy2:#132c44;--navy3:#163352;
+  --teal:#1a6b8a;--teal-lt:#d0e8f0;
+  --rule:rgba(26,107,138,0.28);--muted:#4a7a94;--pale:#7aadca;--ink:#1a2533;
+  --bg:#e4e7ec;--paper:#ffffff;--green:#1a6b4a;--red:#c0292b;
+  --amber:#b06000;--mid:#dde3e9;--section-bg:#e4ecf1;
+  --panel:#f4f5f7;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);min-height:100vh;padding:12px;display:flex;flex-direction:column;align-items:center;color:var(--ink);}
+.toolbar{width:100%;max-width:960px;display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;background:var(--navy);padding:10px 14px;border-radius:2px;}
+.toolbar-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#aec8d8;flex:1;min-width:120px;}
+.toolbar-sep{width:1px;height:22px;background:rgba(255,255,255,0.15);margin:0 4px;}
+.btn{font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;padding:6px 12px;border:none;cursor:pointer;border-radius:2px;transition:all 0.12s;white-space:nowrap;}
+.btn-ghost{background:rgba(255,255,255,0.1);color:#cde;border:1px solid rgba(255,255,255,0.2);}
+.btn-ghost:hover{background:rgba(255,255,255,0.2);}
+.btn-new{background:#1a5c8a;color:#fff;}
+.btn-new:hover{background:#13456b;}
+.btn-pdf{background:#0d7c4e;color:#fff;}
+.btn-pdf:hover{background:#095c39;}
+.btn-sp{background:#0078d4;color:#fff;}
+.btn-sp:hover{background:#006bb8;}
+.btn-dup{background:#1a5c4a;color:#fff;}
+.btn-dup:hover{background:#0f3d30;}
+.btn-clear{background:var(--red);color:#fff;}
+.btn-clear:hover{background:#a0201f;}
+
+.doc{width:100%;max-width:960px;background:var(--paper);border:1px solid #c5ced8;padding:28px 32px;}
+.doc-header{border-bottom:3px solid var(--teal);padding-bottom:16px;margin-bottom:20px;}
+.doc-header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.doc-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--navy);line-height:1;}
+.doc-ref{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);text-align:right;}
+.doc-ref span{display:block;font-size:22px;color:var(--teal);margin-top:2px;}
+
+/* Status badges */
+.status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;}
+.status-label{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);}
+.status-btn{padding:5px 14px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border:1px solid;cursor:pointer;background:transparent;transition:all 0.12s;border-radius:2px;}
+.status-btn.open{border-color:#1a5c8a;color:#1a5c8a;}
+.status-btn.open.active,.status-btn.open:hover{background:#1a5c8a;color:#fff;}
+.status-btn.progress{border-color:#b06000;color:#b06000;}
+.status-btn.progress.active,.status-btn.progress:hover{background:#b06000;color:#fff;}
+.status-btn.waiting{border-color:#5c3d8a;color:#5c3d8a;}
+.status-btn.waiting.active,.status-btn.waiting:hover{background:#5c3d8a;color:#fff;}
+.status-btn.done{border-color:#0d7c4e;color:#0d7c4e;}
+.status-btn.done.active,.status-btn.done:hover{background:#0d7c4e;color:#fff;}
+
+/* Info grids */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0;border:1px solid var(--mid);margin-bottom:0;}
+.info-cell{padding:8px 12px;border-right:1px solid var(--mid);border-bottom:1px solid var(--mid);}
+.info-cell.wide{grid-column:span 2;}
+.info-cell.full{grid-column:1/-1;}
+.info-label{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--teal);margin-bottom:3px;}
+.info-input,.info-select,.info-textarea{width:100%;border:none;outline:none;font-family:'Barlow',sans-serif;font-size:13px;color:var(--ink);background:transparent;border-bottom:1px solid var(--mid);padding-bottom:2px;}
+.info-input:focus,.info-select:focus,.info-textarea:focus{border-bottom-color:var(--teal);}
+.info-textarea{resize:vertical;min-height:50px;}
+
+/* Section */
+.section-head{background:var(--navy);color:#fff;padding:8px 14px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;}
+.section-head-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;}
+.add-row-btn{font-family:'Barlow',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:rgba(255,255,255,0.12);color:#cde;border:1px solid rgba(255,255,255,0.2);padding:3px 10px;cursor:pointer;border-radius:2px;}
+.add-row-btn:hover{background:rgba(255,255,255,0.22);}
+
+/* Line tables */
+.line-table{width:100%;border-collapse:collapse;}
+.line-table th{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--teal);background:var(--section-bg);padding:6px 8px;border:1px solid var(--mid);text-align:left;}
+.line-table th.num{text-align:right;width:80px;}
+.line-table th.narrow{width:100px;}
+.line-table td{padding:4px 6px;border:1px solid var(--mid);vertical-align:middle;}
+.line-table tr:nth-child(even) td{background:#f8fafb;}
+.cell-input{width:100%;border:none;outline:none;font-family:'Barlow',sans-serif;font-size:12px;color:var(--ink);background:transparent;text-align:left;}
+.cell-input.num{text-align:right;}
+.cell-input:focus{background:#f0f7ff;}
+.del-btn{background:transparent;border:none;color:#aaa;cursor:pointer;font-size:14px;padding:0 4px;}
+.del-btn:hover{color:var(--red);}
+
+/* Totals */
+.totals-panel{background:var(--section-bg);border:1px solid var(--mid);padding:14px 18px;margin-top:16px;display:grid;grid-template-columns:1fr auto;gap:4px 24px;align-items:center;}
+.tot-label{font-size:11px;color:var(--muted);}
+.tot-value{font-size:13px;font-weight:600;color:var(--ink);text-align:right;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.04em;}
+.tot-label.grand,.tot-value.grand{font-size:15px;font-weight:700;color:var(--navy);border-top:1px solid var(--mid);padding-top:6px;margin-top:2px;}
+.tot-toggle{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);}
+.tot-toggle input{accent-color:var(--teal);}
+
+/* Fault codes */
+.fault-table{width:100%;border-collapse:collapse;}
+.fault-table th{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--teal);background:var(--section-bg);padding:6px 8px;border:1px solid var(--mid);text-align:left;}
+.fault-table td{padding:4px 6px;border:1px solid var(--mid);vertical-align:middle;}
+.fault-table tr:nth-child(even) td{background:#f8fafb;}
+.fault-status{padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border:none;cursor:pointer;border-radius:2px;}
+.fault-status.active{background:#fde8e8;color:var(--red);}
+.fault-status.cleared{background:#dcf5e8;color:var(--green);}
+.fault-status.monitoring{background:#fff3e0;color:var(--amber);}
+
+/* Sign-off */
+.signoff-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:20px;padding:14px;background:var(--section-bg);border:1px solid var(--mid);}
+.signoff-field label{font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:4px;}
+.signoff-field input{width:100%;border:none;border-bottom:1px solid var(--mid);outline:none;font-family:'Barlow',sans-serif;font-size:13px;padding-bottom:3px;background:transparent;}
+.signoff-field input:focus{border-bottom-color:var(--teal);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2533;color:#fff;padding:10px 20px;font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:all 0.22s;z-index:9999;white-space:nowrap;border-radius:2px;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok{background:#0d7c4e;}.toast.err{background:var(--red);}.toast.inf{background:#0078d4;}
+
+/* SP Modal */
+#spModal{display:none;position:fixed;inset:0;background:rgba(13,33,55,0.85);z-index:9998;align-items:center;justify-content:center;}
+
+@media(max-width:640px){
+  .doc{padding:16px;}
+  .info-grid{grid-template-columns:1fr 1fr;}
+  .info-cell.wide{grid-column:span 1;}
+  .signoff-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-title">Job Card System</div>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-new"   onclick="newCard()">＋ New</button>
+  <button class="btn btn-dup"   onclick="dupCard()">⎘ Duplicate</button>
+  <button class="btn btn-pdf"   onclick="exportPDF()">⬇ PDF</button>
+  <button class="btn btn-sp"    onclick="submitToSharePoint()">☁ SharePoint</button>
+  <button class="btn btn-ghost" onclick="saveCard()">💾 Save</button>
+  <button class="btn btn-clear" onclick="clearCard()">✕ Clear</button>
+</div>
+
+<div class="doc" id="doc">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div>
+        <div class="doc-title">Job Card</div>
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal);margin-top:4px;">Moonee Valley Bus Lines — Workshop</div>
+      </div>
+      <div class="doc-ref">Job Number<span id="refDisplay">JOB-202506-001</span></div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-row">
+    <span class="status-label">Status:</span>
+    <button class="status-btn open active"     id="status-open"     onclick="setStatus('open')">Open</button>
+    <button class="status-btn progress"         id="status-progress" onclick="setStatus('progress')">In Progress</button>
+    <button class="status-btn waiting"          id="status-waiting"  onclick="setStatus('waiting')">Waiting Parts</button>
+    <button class="status-btn done"             id="status-done"     onclick="setStatus('done')">Complete</button>
+  </div>
+
+  <!-- Vehicle -->
+  <div style="margin-bottom:16px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:10px;">Vehicle Details <span style="flex:1;height:1px;background:var(--rule);display:block;"></span></div>
+    <div class="info-grid">
+      <div class="info-cell"><div class="info-label">Fleet No.</div><input class="info-input" id="fleetNo" placeholder="e.g. 042"></div>
+      <div class="info-cell"><div class="info-label">Registration</div><input class="info-input" id="rego" placeholder="e.g. 1AB2CD"></div>
+      <div class="info-cell"><div class="info-label">Make / Model</div><input class="info-input" id="model" placeholder="e.g. Volvo B7RLE"></div>
+      <div class="info-cell"><div class="info-label">Year</div><input class="info-input" id="year" type="number" placeholder="e.g. 2015" style="max-width:100px;"></div>
+      <div class="info-cell"><div class="info-label">Odometer (km)</div><input class="info-input" id="odometer" type="number" placeholder="km"></div>
+      <div class="info-cell"><div class="info-label">Engine No.</div><input class="info-input" id="engineNo" placeholder="Optional"></div>
+    </div>
+  </div>
+
+  <!-- Job Details -->
+  <div style="margin-bottom:16px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:10px;">Job Details <span style="flex:1;height:1px;background:var(--rule);display:block;"></span></div>
+    <div class="info-grid">
+      <div class="info-cell"><div class="info-label">Date In</div><input class="info-input" id="dateIn" type="date"></div>
+      <div class="info-cell"><div class="info-label">Date Required</div><input class="info-input" id="dateReq" type="date"></div>
+      <div class="info-cell"><div class="info-label">Date Completed</div><input class="info-input" id="dateComp" type="date"></div>
+      <div class="info-cell"><div class="info-label">Mechanic Assigned</div><input class="info-input" id="mechanic" placeholder="Name"></div>
+      <div class="info-cell"><div class="info-label">Job Type</div>
+        <select class="info-select" id="jobType">
+          <option value="">— Select —</option>
+          <option>Scheduled Service</option>
+          <option>Breakdown / Repair</option>
+          <option>Accident Repair</option>
+          <option>Warranty Work</option>
+          <option>Pre-Registration</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="info-cell"><div class="info-label">Customer / Authorised By</div><input class="info-input" id="customer" placeholder="Name or company"></div>
+      <div class="info-cell full"><div class="info-label">Fault Description / Work Requested</div><textarea class="info-textarea" id="faultDesc" rows="3" placeholder="Describe the fault or work required…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- Fault codes -->
+  <div class="section-head">
+    <div class="section-head-title">Fault Codes</div>
+    <button class="add-row-btn" onclick="addFaultRow()">＋ Add Code</button>
+  </div>
+  <table class="fault-table">
+    <thead><tr>
+      <th>Code</th>
+      <th>Description</th>
+      <th style="width:110px;">Status</th>
+      <th style="width:80px;">Cleared Date</th>
+      <th style="width:30px;"></th>
+    </tr></thead>
+    <tbody id="tbody-faults"></tbody>
+  </table>
+
+  <!-- Parts -->
+  <div class="section-head">
+    <div class="section-head-title">Parts &amp; Materials</div>
+    <button class="add-row-btn" onclick="addPartRow()">＋ Add Part</button>
+  </div>
+  <table class="line-table" id="partsTable">
+    <thead><tr>
+      <th>Part No.</th><th>Description</th><th class="narrow">Qty</th>
+      <th class="narrow">Unit</th><th class="num">Unit Price</th><th class="num">Total</th><th style="width:30px;"></th>
+    </tr></thead>
+    <tbody id="tbody-parts"></tbody>
+  </table>
+
+  <!-- Labour -->
+  <div class="section-head">
+    <div class="section-head-title">Labour</div>
+    <button class="add-row-btn" onclick="addLabourRow()">＋ Add Labour</button>
+  </div>
+  <table class="line-table">
+    <thead><tr>
+      <th>Description</th><th class="narrow">Mechanic</th>
+      <th class="narrow">Hours</th><th class="num">Rate ($/hr)</th><th class="num">Total</th><th style="width:30px;"></th>
+    </tr></thead>
+    <tbody id="tbody-labour"></tbody>
+  </table>
+
+  <!-- Other costs -->
+  <div class="section-head">
+    <div class="section-head-title">Other Costs</div>
+    <button class="add-row-btn" onclick="addOtherRow()">＋ Add Item</button>
+  </div>
+  <table class="line-table">
+    <thead><tr>
+      <th>Description</th><th class="num">Amount</th><th style="width:30px;"></th>
+    </tr></thead>
+    <tbody id="tbody-other"></tbody>
+  </table>
+
+  <!-- Totals -->
+  <div class="totals-panel">
+    <div class="tot-label">Parts &amp; Materials</div><div class="tot-value" id="tot-parts">$0.00</div>
+    <div class="tot-label">Labour</div><div class="tot-value" id="tot-labour">$0.00</div>
+    <div class="tot-label">Other Costs</div><div class="tot-value" id="tot-other">$0.00</div>
+    <div class="tot-label">Subtotal (ex GST)</div><div class="tot-value" id="tot-sub">$0.00</div>
+    <div class="tot-toggle"><input type="checkbox" id="gstEnabled" checked onchange="recalc()"><label for="gstEnabled">GST</label>
+      <input type="number" id="gstRate" value="10" min="0" max="30" style="width:40px;border:none;border-bottom:1px solid var(--mid);outline:none;text-align:right;font-family:'Barlow',sans-serif;font-size:12px;" onchange="recalc()">%
+    </div>
+    <div class="tot-value" id="tot-gst">$0.00</div>
+    <div class="tot-label grand">Total</div><div class="tot-value grand" id="tot-grand">$0.00</div>
+  </div>
+
+  <!-- Work completed -->
+  <div style="margin-top:16px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:6px;">Work Completed / Technician Notes</div>
+    <textarea id="workDone" rows="4" style="width:100%;font-family:'Barlow',sans-serif;font-size:12px;border:1px solid var(--mid);padding:8px;outline:none;resize:vertical;color:var(--ink);" placeholder="Describe work performed, findings, recommendations…"></textarea>
+  </div>
+
+  <!-- Next service -->
+  <div class="info-grid" style="margin-top:12px;margin-bottom:0;">
+    <div class="info-cell"><div class="info-label">Next Service Date</div><input class="info-input" id="nextServiceDate" type="date"></div>
+    <div class="info-cell"><div class="info-label">Next Service Odometer</div><input class="info-input" id="nextServiceOdo" type="number" placeholder="km"></div>
+    <div class="info-cell wide"><div class="info-label">Next Service Notes</div><input class="info-input" id="nextServiceNotes" placeholder="e.g. Replace air filter at next service"></div>
+  </div>
+
+  <!-- Sign off -->
+  <div class="signoff-grid">
+    <div class="signoff-field"><label>Mechanic / Technician</label><input id="sigMechanic" placeholder="Name"></div>
+    <div class="signoff-field"><label>Supervisor / Sign-off</label><input id="sigSupervisor" placeholder="Name"></div>
+    <div class="signoff-field"><label>Customer Signature</label><input id="sigCustomer" placeholder="Name"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- SP Modal -->
+<div id="spModal" style="display:none;position:fixed;inset:0;background:rgba(13,33,55,0.85);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#1a2c42;padding:28px;width:400px;max-width:95vw;border-top:3px solid #0078d4;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#0078d4;margin-bottom:6px;">Submit to SharePoint</div>
+    <div id="spModalMsg" style="font-size:12px;color:#7aadca;margin-bottom:18px;line-height:1.6;">Saves job card to SharePoint and uploads PDF.</div>
+    <div id="spSetupSection" style="display:none;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#1a6b8a;margin-bottom:10px;font-weight:700;">One-time setup</div>
+      <div style="margin-bottom:10px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Client ID</div><input id="spClientId" type="text" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <div style="margin-bottom:14px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Tenant ID</div><input id="spTenantId" type="text" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <button onclick="saveSpConfig()" style="width:100%;background:#0078d4;color:#fff;border:none;padding:9px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">Save Settings</button>
+    </div>
+    <div id="spSignedInSection" style="display:none;margin-bottom:14px;">
+      <div style="background:#0d2a1a;border:1px solid #166534;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="color:#22c55e;">✓</span><div><div style="font-size:11px;font-weight:600;color:#22c55e;">Signed in</div><div style="font-size:10px;color:#4a7a5a;" id="spSignedInUser"></div></div>
+        <button onclick="spSignOut()" style="margin-left:auto;background:transparent;border:1px solid #166534;color:#4a7a5a;font-size:10px;padding:3px 8px;cursor:pointer;">Sign out</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="spSignInBtn" onclick="spSignIn()" style="flex:1;background:#0078d4;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">🔐 Sign in with Microsoft</button>
+      <button id="spSubmitBtn" onclick="doSubmitToSharePoint()" style="flex:1;background:#0d7c4e;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">☁ Submit</button>
+      <button onclick="closeSpModal()" style="background:rgba(255,255,255,0.08);color:#6b7a8d;border:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;">Cancel</button>
+    </div>
+    <div id="spProgress" style="display:none;">
+      <div style="font-size:11px;color:#7aadca;margin-bottom:6px;font-weight:600;" id="spProgressMsg">Preparing…</div>
+      <div style="background:#0d2137;border-radius:2px;overflow:hidden;height:6px;margin-bottom:6px;"><div id="spProgressBar" style="height:100%;width:0%;background:#0078d4;transition:width 0.3s;"></div></div>
+      <div style="font-size:10px;color:#4a6070;" id="spProgressDetail"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Reference number ─────────────────────────────────────────────
+function genRef(){const now=new Date();const mon=String(now.getMonth()+1).padStart(2,'0');const saved=JSON.parse(localStorage.getItem('mvbl_job_refs')||'{}');const key=`${now.getFullYear()}${mon}`;saved[key]=(saved[key]||0)+1;localStorage.setItem('mvbl_job_refs',JSON.stringify(saved));return `JOB-${now.getFullYear()}${mon}-${String(saved[key]).padStart(3,'0')}`;}
+let currentRef='';
+function loadOrGenRef(){currentRef=localStorage.getItem('mvbl_job_current_ref')||genRef();localStorage.setItem('mvbl_job_current_ref',currentRef);document.getElementById('refDisplay').textContent=currentRef;}
+loadOrGenRef();
+document.getElementById('dateIn').value=new Date().toISOString().split('T')[0];
+
+// ── Status ────────────────────────────────────────────────────────
+let currentStatus='open';
+function setStatus(s){currentStatus=s;['open','progress','waiting','done'].forEach(t=>{document.getElementById('status-'+t).classList.toggle('active',t===s);});}
+
+// ── Row builders ──────────────────────────────────────────────────
+function addPartRow(partNo='',desc='',qty='1',unit='ea',price='',total=''){
+  const id='p'+Date.now();
+  const tr=document.createElement('tr');
+  tr.id=id;
+  tr.innerHTML=`
+    <td><input class="cell-input" placeholder="Part no." value="${partNo}" onchange="recalcPart(this)"></td>
+    <td><input class="cell-input" placeholder="Description" value="${desc}"></td>
+    <td><input class="cell-input num" type="number" value="${qty}" min="0" step="0.01" onchange="recalcPart(this)" style="width:60px;"></td>
+    <td><input class="cell-input" value="${unit}" style="width:60px;"></td>
+    <td><input class="cell-input num" type="number" value="${price}" min="0" step="0.01" placeholder="0.00" onchange="recalcPart(this)"></td>
+    <td id="tot-${id}" style="text-align:right;font-weight:600;font-size:12px;">${total||'$0.00'}</td>
+    <td><button class="del-btn" onclick="delRow('${id}')">✕</button></td>
+  `;
+  document.getElementById('tbody-parts').appendChild(tr);
+  if(!total)recalcPart(tr.querySelector('input.num'));
+}
+
+function recalcPart(input){
+  const tr=input.closest('tr');
+  const inputs=tr.querySelectorAll('input.num');
+  const qty=parseFloat(inputs[0].value)||0;
+  const price=parseFloat(inputs[1].value)||0;
+  const tot=qty*price;
+  document.getElementById('tot-'+tr.id).textContent='$'+tot.toFixed(2);
+  recalc();
+}
+
+function addLabourRow(desc='',mech='',hrs='',rate='',total=''){
+  const id='l'+Date.now();
+  const tr=document.createElement('tr');
+  tr.id=id;
+  tr.innerHTML=`
+    <td><input class="cell-input" placeholder="Work description" value="${desc}"></td>
+    <td><input class="cell-input" placeholder="Name" value="${mech}" style="max-width:120px;"></td>
+    <td><input class="cell-input num" type="number" value="${hrs}" min="0" step="0.25" placeholder="0.0" onchange="recalcLabour(this)"></td>
+    <td><input class="cell-input num" type="number" value="${rate}" min="0" step="1" placeholder="0.00" onchange="recalcLabour(this)"></td>
+    <td id="tot-${id}" style="text-align:right;font-weight:600;font-size:12px;">${total||'$0.00'}</td>
+    <td><button class="del-btn" onclick="delRow('${id}')">✕</button></td>
+  `;
+  document.getElementById('tbody-labour').appendChild(tr);
+  if(!total)recalcLabour(tr.querySelector('input.num'));
+}
+
+function recalcLabour(input){
+  const tr=input.closest('tr');
+  const inputs=tr.querySelectorAll('input.num');
+  const hrs=parseFloat(inputs[0].value)||0;
+  const rate=parseFloat(inputs[1].value)||0;
+  const tot=hrs*rate;
+  document.getElementById('tot-'+tr.id).textContent='$'+tot.toFixed(2);
+  recalc();
+}
+
+function addOtherRow(desc='',amt=''){
+  const id='o'+Date.now();
+  const tr=document.createElement('tr');
+  tr.id=id;
+  tr.innerHTML=`
+    <td><input class="cell-input" placeholder="Description" value="${desc}"></td>
+    <td><input class="cell-input num" type="number" value="${amt}" min="0" step="0.01" placeholder="0.00" onchange="recalc()" style="text-align:right;"></td>
+    <td><button class="del-btn" onclick="delRow('${id}')">✕</button></td>
+  `;
+  document.getElementById('tbody-other').appendChild(tr);
+  recalc();
+}
+
+function addFaultRow(code='',desc='',status='active',clearedDate=''){
+  const id='f'+Date.now();
+  const tr=document.createElement('tr');
+  tr.id=id;
+  tr.innerHTML=`
+    <td><input class="cell-input" placeholder="e.g. P0123" value="${code}" style="max-width:90px;"></td>
+    <td><input class="cell-input" placeholder="Fault description" value="${desc}"></td>
+    <td>
+      <select onchange="this.className='fault-status '+this.value" class="fault-status ${status}">
+        <option value="active"    ${status==='active'    ?'selected':''}>Active</option>
+        <option value="monitoring"${status==='monitoring'?'selected':''}>Monitoring</option>
+        <option value="cleared"   ${status==='cleared'   ?'selected':''}>Cleared</option>
+      </select>
+    </td>
+    <td><input class="cell-input" type="date" value="${clearedDate}"></td>
+    <td><button class="del-btn" onclick="delRow('${id}')">✕</button></td>
+  `;
+  document.getElementById('tbody-faults').appendChild(tr);
+}
+
+function delRow(id){document.getElementById(id)?.remove();recalc();}
+
+function recalc(){
+  let parts=0,labour=0,other=0;
+  document.querySelectorAll('#tbody-parts tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input.num');
+    if(inputs.length>=2)parts+=(parseFloat(inputs[0].value)||0)*(parseFloat(inputs[1].value)||0);
+  });
+  document.querySelectorAll('#tbody-labour tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input.num');
+    if(inputs.length>=2)labour+=(parseFloat(inputs[0].value)||0)*(parseFloat(inputs[1].value)||0);
+  });
+  document.querySelectorAll('#tbody-other tr').forEach(tr=>{
+    const input=tr.querySelector('input.num');
+    if(input)other+=parseFloat(input.value)||0;
+  });
+  const sub=parts+labour+other;
+  const gstEnabled=document.getElementById('gstEnabled').checked;
+  const gstRate=parseFloat(document.getElementById('gstRate').value)||0;
+  const gst=gstEnabled?sub*(gstRate/100):0;
+  const grand=sub+gst;
+  document.getElementById('tot-parts').textContent='$'+parts.toFixed(2);
+  document.getElementById('tot-labour').textContent='$'+labour.toFixed(2);
+  document.getElementById('tot-other').textContent='$'+other.toFixed(2);
+  document.getElementById('tot-sub').textContent='$'+sub.toFixed(2);
+  document.getElementById('tot-gst').textContent='$'+gst.toFixed(2);
+  document.getElementById('tot-grand').textContent='$'+grand.toFixed(2);
+}
+
+// Initialise with one row each
+addLabourRow();
+addPartRow();
+
+// ── Save / Load ───────────────────────────────────────────────────
+function getCardData(){
+  const data={ref:currentRef,status:currentStatus,fields:{},parts:[],labour:[],other:[],faults:[]};
+  ['fleetNo','rego','model','year','odometer','engineNo','dateIn','dateReq','dateComp','mechanic','jobType','customer','faultDesc','workDone','nextServiceDate','nextServiceOdo','nextServiceNotes','sigMechanic','sigSupervisor','sigCustomer','addNotes'].forEach(id=>{const el=document.getElementById(id);if(el)data.fields[id]=el.value;});
+  document.querySelectorAll('#tbody-parts tr').forEach(tr=>{const i=tr.querySelectorAll('input');data.parts.push([i[0]?.value||'',i[1]?.value||'',i[2]?.value||'',i[3]?.value||'',i[4]?.value||'']);});
+  document.querySelectorAll('#tbody-labour tr').forEach(tr=>{const i=tr.querySelectorAll('input');data.labour.push([i[0]?.value||'',i[1]?.value||'',i[2]?.value||'',i[3]?.value||'']);});
+  document.querySelectorAll('#tbody-other tr').forEach(tr=>{const i=tr.querySelectorAll('input');data.other.push([i[0]?.value||'',i[1]?.value||'']);});
+  document.querySelectorAll('#tbody-faults tr').forEach(tr=>{const i=tr.querySelectorAll('input');const s=tr.querySelector('select');data.faults.push([i[0]?.value||'',i[1]?.value||'',s?.value||'active',i[2]?.value||'']);});
+  return data;
+}
+
+function loadCardData(data){
+  if(!data)return;
+  currentRef=data.ref||currentRef;document.getElementById('refDisplay').textContent=currentRef;
+  setStatus(data.status||'open');
+  Object.entries(data.fields||{}).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val;});
+  document.getElementById('tbody-parts').innerHTML='';
+  document.getElementById('tbody-labour').innerHTML='';
+  document.getElementById('tbody-other').innerHTML='';
+  document.getElementById('tbody-faults').innerHTML='';
+  (data.parts||[]).forEach(r=>addPartRow(...r));
+  (data.labour||[]).forEach(r=>addLabourRow(...r));
+  (data.other||[]).forEach(r=>addOtherRow(...r));
+  (data.faults||[]).forEach(r=>addFaultRow(...r));
+  recalc();
+}
+
+function saveCard(){localStorage.setItem('mvbl_job_form',JSON.stringify(getCardData()));toast('Saved','ok');}
+function newCard(){if(!confirm('Start a new job card? Unsaved data will be lost.'))return;document.getElementById('tbody-parts').innerHTML='';document.getElementById('tbody-labour').innerHTML='';document.getElementById('tbody-other').innerHTML='';document.getElementById('tbody-faults').innerHTML='';currentRef=genRef();localStorage.setItem('mvbl_job_current_ref',currentRef);document.getElementById('refDisplay').textContent=currentRef;document.getElementById('dateIn').value=new Date().toISOString().split('T')[0];setStatus('open');['fleetNo','rego','model','year','odometer','engineNo','dateReq','dateComp','mechanic','customer','faultDesc','workDone','nextServiceDate','nextServiceOdo','nextServiceNotes','sigMechanic','sigSupervisor','sigCustomer'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('jobType').selectedIndex=0;addPartRow();addLabourRow();recalc();}
+function clearCard(){document.querySelectorAll('#tbody-parts tr,#tbody-labour tr,#tbody-other tr,#tbody-faults tr').forEach(tr=>tr.remove());addPartRow();addLabourRow();recalc();}
+function dupCard(){const data=getCardData();data.ref=genRef();data.status='open';localStorage.setItem('mvbl_job_current_ref',data.ref);currentRef=data.ref;document.getElementById('refDisplay').textContent=currentRef;setStatus('open');toast('Duplicated as '+currentRef,'ok');}
+
+const saved=localStorage.getItem('mvbl_job_form');
+if(saved){try{loadCardData(JSON.parse(saved));}catch(e){}}
+
+// ── PDF Export ───────────────────────────────────────────────────
+async function exportPDF(){
+  toast('Generating PDF…','inf');
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const pw=210,ph=297,margin=14;let y=margin;
+  const cw=pw-margin*2; // content width
+
+  // Helper: section header bar
+  function secBar(label){
+    if(y>ph-30){doc.addPage();y=margin;}
+    doc.setFillColor(13,33,55);doc.rect(margin,y,cw,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+    doc.text(label,margin+3,y+5);y+=8;
+  }
+  // Helper: column header row
+  function colHdr(cols){// cols: [{text,x,align?}]
+    doc.setFillColor(228,236,241);doc.rect(margin,y,cw,5,'F');
+    doc.setFontSize(6);doc.setTextColor(26,107,138);doc.setFont('helvetica','bold');
+    cols.forEach(c=>doc.text(c.text,c.x,y+3.5,{align:c.align||'left'}));
+    y+=6;
+  }
+  // Helper: ensure room for a row
+  function ensureRow(h){if(y>ph-h-8){doc.addPage();y=margin;}}
+
+  // ── Header — navy bg left: company+title, right: job ref+status ─
+  const statusLabel={open:'OPEN',progress:'IN PROGRESS',waiting:'WAITING PARTS',done:'COMPLETE'};
+  const statusColors={open:[26,92,138],progress:[176,96,0],waiting:[92,61,138],done:[13,124,78]};
+  const sc=statusColors[currentStatus]||[13,33,55];
+  const hdrH=30;
+  doc.setFillColor(13,33,55);doc.rect(0,0,pw,hdrH,'F');
+  // Left side: company name + subtitle
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(255,255,255);
+  doc.text('MOONEE VALLEY BUS LINES',margin,13);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(26,107,138);
+  doc.text('Workshop Job Card',margin,20);
+  // Right side: JOB CARD title + ref
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(255,255,255);
+  doc.text('JOB CARD',pw-margin,15,{align:'right'});
+  // Status badge
+  doc.setFillColor(...sc);doc.rect(pw-margin-45,19,45,7,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
+  doc.text(statusLabel[currentStatus]||'',pw-margin-22.5,24,{align:'center'});
+  // Ref below status
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(208,232,240);
+  doc.text(currentRef,pw-margin,28,{align:'right'});
+  y=hdrH;
+  // Teal stripe
+  doc.setFillColor(26,107,138);doc.rect(0,y,pw,2,'F');y+=2;
+
+  // ── Vehicle & job info — bordered cells matching screen ───────
+  const flds=[
+    ['Fleet No.', document.getElementById('fleetNo').value],
+    ['Registration', document.getElementById('rego').value],
+    ['Make / Model',document.getElementById('model').value],
+    ['Year',      document.getElementById('year').value],
+    ['Odometer',  (document.getElementById('odometer').value||'')+'km'],
+    ['Engine No.',document.getElementById('engineNo').value],
+    ['Job Type',  document.getElementById('jobType').value],
+    ['Mechanic',  document.getElementById('mechanic').value],
+    ['Date In',   document.getElementById('dateIn').value],
+    ['Date Req.',  document.getElementById('dateReq').value],
+  ];
+  const cols2=5, cellH=12, cellW=cw/cols2;
+  doc.setDrawColor(210,218,225);doc.setLineWidth(0.2);
+  for(let row=0;row<2;row++){
+    doc.setFillColor(row===0?248:244,row===0?250:248,row===0?251:252);
+    doc.rect(margin,y+row*cellH,cw,cellH,'F');
+    doc.rect(margin,y+row*cellH,cw,cellH);
+    for(let col=0;col<cols2;col++){
+      const f=flds[row*cols2+col];if(!f)continue;
+      const cx=margin+col*cellW;
+      if(col>0)doc.line(cx,y+row*cellH,cx,y+row*cellH+cellH);
+      doc.setFont('helvetica','bold');doc.setTextColor(26,107,138);doc.setFontSize(6.5);
+      doc.text(f[0],cx+2,y+row*cellH+5);
+      doc.setFont('helvetica','normal');doc.setTextColor(26,33,51);doc.setFontSize(9);
+      doc.text(String(f[1]||''),cx+2,y+row*cellH+11);
+    }
+  }
+  y+=cellH*2+4;
+
+  // ── Fault description ─────────────────────────────────────────
+  const fault=document.getElementById('faultDesc').value;
+  if(fault){
+    ensureRow(20);
+    doc.setFillColor(255,250,240);doc.rect(margin,y,cw,6,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(26,107,138);
+    doc.text('FAULT DESCRIPTION / WORK REQUESTED',margin+2,y+4);y+=6;
+    doc.setFillColor(255,255,255);
+    const lines=doc.splitTextToSize(fault,cw-6);
+    const textH=lines.length*4.5+6;
+    doc.rect(margin,y,cw,textH,'F');
+    doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.rect(margin,y,cw,textH);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(26,33,51);
+    doc.text(lines,margin+3,y+5);
+    y+=textH+4;
+  }
+
+  // ── Fault codes ───────────────────────────────────────────────
+  const faultRows=document.querySelectorAll('#tbody-faults tr');
+  if(faultRows.length){
+    secBar('FAULT CODES');
+    colHdr([{text:'CODE',x:margin+2},{text:'DESCRIPTION',x:margin+28},{text:'STATUS',x:pw-margin-40},{text:'CLEARED',x:pw-margin-14,align:'right'}]);
+    faultRows.forEach((tr,idx)=>{
+      ensureRow(7);
+      const inputs=tr.querySelectorAll('input');
+      const sel=tr.querySelector('select');
+      if(idx%2===0){doc.setFillColor(248,250,251);doc.rect(margin,y,cw,7,'F');}
+      doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.rect(margin,y,cw,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(26,33,51);
+      doc.text((inputs[0]?.value||'').substring(0,12),margin+2,y+4.5);
+      doc.text((inputs[1]?.value||'').substring(0,55),margin+28,y+4.5);
+      const stat=sel?.value||'';
+      const statColor={active:[192,41,43],monitoring:[176,96,0],cleared:[26,107,74]};
+      const sc=statColor[stat]||[100,100,100];
+      doc.setTextColor(...sc);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
+      doc.text(stat.toUpperCase(),pw-margin-40,y+4.5);
+      doc.setFont('helvetica','normal');doc.setTextColor(26,33,51);doc.setFontSize(7);
+      doc.text(inputs[2]?.value||'',pw-margin-2,y+4.5,{align:'right'});
+      y+=7;
+    });
+    y+=3;
+  }
+
+  // ── Parts & Materials ─────────────────────────────────────────
+  const partRows=document.querySelectorAll('#tbody-parts tr');
+  if(partRows.length){
+    secBar('PARTS & MATERIALS');
+    colHdr([{text:'PART NO.',x:margin+2},{text:'DESCRIPTION',x:margin+28},{text:'QTY',x:pw-margin-52},{text:'UNIT',x:pw-margin-42},{text:'UNIT PRICE',x:pw-margin-28},{text:'TOTAL',x:pw-margin-2,align:'right'}]);
+    partRows.forEach((tr,idx)=>{
+      ensureRow(7);
+      const inputs=tr.querySelectorAll('input');
+      const qty=parseFloat(inputs[2]?.value||0)||0;
+      const price=parseFloat(inputs[4]?.value||0)||0;
+      const tot=qty*price;
+      if(idx%2===0){doc.setFillColor(248,250,251);doc.rect(margin,y,cw,7,'F');}
+      doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.rect(margin,y,cw,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(26,33,51);
+      doc.text((inputs[0]?.value||'').substring(0,12),margin+2,y+4.5);
+      doc.text((inputs[1]?.value||'').substring(0,55),margin+28,y+4.5);
+      doc.text(String(qty||''),pw-margin-52,y+4.5);
+      doc.text((inputs[3]?.value||'').substring(0,8),pw-margin-42,y+4.5);
+      if(price)doc.text('$'+price.toFixed(2),pw-margin-28,y+4.5);
+      doc.setFont('helvetica','bold');
+      doc.text('$'+tot.toFixed(2),pw-margin-2,y+4.5,{align:'right'});
+      y+=7;
+    });
+    y+=3;
+  }
+
+  // ── Labour ────────────────────────────────────────────────────
+  const labourRows=document.querySelectorAll('#tbody-labour tr');
+  if(labourRows.length){
+    secBar('LABOUR');
+    colHdr([{text:'DESCRIPTION',x:margin+2},{text:'MECHANIC',x:margin+85},{text:'HRS',x:pw-margin-40},{text:'RATE',x:pw-margin-26},{text:'TOTAL',x:pw-margin-2,align:'right'}]);
+    labourRows.forEach((tr,idx)=>{
+      ensureRow(7);
+      const inputs=tr.querySelectorAll('input');
+      const hrs=parseFloat(inputs[2]?.value||0)||0;
+      const rate=parseFloat(inputs[3]?.value||0)||0;
+      const tot=hrs*rate;
+      if(idx%2===0){doc.setFillColor(248,250,251);doc.rect(margin,y,cw,7,'F');}
+      doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.rect(margin,y,cw,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(26,33,51);
+      const labDesc = inputs[0]?.value||'';
+      const labLines = doc.splitTextToSize(labDesc, 80);
+      const labRowH = Math.max(7, labLines.length*4.5+2);
+      if(idx===0||labRowH>7){
+        // redraw with correct height if needed
+      }
+      doc.text(labLines[0]||'',margin+2,y+4.5);
+      doc.text((inputs[1]?.value||'').substring(0,20),margin+85,y+4.5);
+      if(hrs)doc.text(hrs+'h',pw-margin-40,y+4.5);
+      if(rate)doc.text('$'+rate+'/h',pw-margin-26,y+4.5);
+      doc.setFont('helvetica','bold');
+      doc.text('$'+tot.toFixed(2),pw-margin-2,y+4.5,{align:'right'});
+      y+=7;
+    });
+    y+=3;
+  }
+
+  // ── Other Costs ───────────────────────────────────────────────
+  const otherRows=document.querySelectorAll('#tbody-other tr');
+  if(otherRows.length){
+    secBar('OTHER COSTS');
+    colHdr([{text:'DESCRIPTION',x:margin+2},{text:'AMOUNT',x:pw-margin-2,align:'right'}]);
+    otherRows.forEach((tr,idx)=>{
+      ensureRow(7);
+      const inputs=tr.querySelectorAll('input');
+      const amt=parseFloat(inputs[1]?.value||0)||0;
+      if(idx%2===0){doc.setFillColor(248,250,251);doc.rect(margin,y,cw,7,'F');}
+      doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.rect(margin,y,cw,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(26,33,51);
+      doc.text((inputs[0]?.value||'').substring(0,80),margin+2,y+4.5);
+      doc.setFont('helvetica','bold');
+      doc.text('$'+amt.toFixed(2),pw-margin-2,y+4.5,{align:'right'});
+      y+=7;
+    });
+    y+=3;
+  }
+
+  // ── Totals ────────────────────────────────────────────────────
+  let parts=0,labour=0,other=0;
+  document.querySelectorAll('#tbody-parts tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');
+    parts+=(parseFloat(i[2]?.value)||0)*(parseFloat(i[4]?.value)||0);
+  });
+  document.querySelectorAll('#tbody-labour tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');
+    labour+=(parseFloat(i[2]?.value)||0)*(parseFloat(i[3]?.value)||0);
+  });
+  document.querySelectorAll('#tbody-other tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');
+    other+=parseFloat(i[1]?.value)||0;
+  });
+  const sub=parts+labour+other;
+  const gstEnabled=document.getElementById('gstEnabled').checked;
+  const gstRate=parseFloat(document.getElementById('gstRate').value)||0;
+  const gst=gstEnabled?sub*(gstRate/100):0;
+  const grand=sub+gst;
+  // Totals panel — right-aligned, fixed 80mm wide
+  const totW=80, totX=pw-margin-totW;
+  const totRows=gstEnabled?5:4; // parts, labour, other, subtotal, [gst], total-bar
+  const totH=totRows*7+10;
+  ensureRow(totH+4);
+  doc.setFillColor(228,236,241);doc.rect(totX,y,totW,totH,'F');
+  doc.setDrawColor(200,210,220);doc.setLineWidth(0.2);doc.rect(totX,y,totW,totH);
+  const totLine=(lbl,val,bold)=>{
+    doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(8);doc.setTextColor(26,33,51);
+    doc.text(lbl,totX+3,y+5);
+    doc.setFont('helvetica','bold');doc.text(val,totX+totW-3,y+5,{align:'right'});
+    doc.setDrawColor(210,218,225);doc.setLineWidth(0.15);doc.line(totX,y+7,totX+totW,y+7);
+    y+=7;
+  };
+  totLine('Parts & Materials:','$'+parts.toFixed(2),false);
+  totLine('Labour:','$'+labour.toFixed(2),false);
+  totLine('Other Costs:','$'+other.toFixed(2),false);
+  totLine('Subtotal (ex GST):','$'+sub.toFixed(2),true);
+  if(gstEnabled) totLine('GST ('+gstRate+'%):','$'+gst.toFixed(2),false);
+  // Grand total bar
+  doc.setFillColor(13,33,55);doc.rect(totX,y,totW,10,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(170,200,218);
+  doc.text('TOTAL',totX+3,y+7);
+  doc.setFontSize(11);doc.setTextColor(255,255,255);
+  doc.text('$'+grand.toFixed(2),totX+totW-3,y+7,{align:'right'});
+  y+=14;
+
+  // ── Work completed ────────────────────────────────────────────
+  const workDone=document.getElementById('workDone').value;
+  if(workDone){
+    ensureRow(24);
+    doc.setFillColor(244,248,252);doc.rect(margin,y,cw,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(26,107,138);
+    doc.text('WORK COMPLETED / TECHNICIAN NOTES',margin+2,y+5);y+=7;
+    const wlines=doc.splitTextToSize(workDone,cw-6);
+    const wh=wlines.length*4.5+5;
+    doc.setFillColor(255,255,255);doc.rect(margin,y,cw,wh,'F');
+    doc.setDrawColor(221,227,233);doc.setLineWidth(0.2);doc.rect(margin,y,cw,wh);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(26,33,51);
+    doc.text(wlines,margin+3,y+5);
+    y+=wh+4;
+  }
+
+  // ── Next service ──────────────────────────────────────────────
+  const nsDate=document.getElementById('nextServiceDate').value;
+  const nsOdo=document.getElementById('nextServiceOdo').value;
+  const nsNotes=document.getElementById('nextServiceNotes').value;
+  if(nsDate||nsOdo||nsNotes){
+    ensureRow(18);
+    doc.setFillColor(240,247,234);doc.rect(margin,y,cw,18,'F');
+    doc.setDrawColor(180,210,180);doc.setLineWidth(0.8);doc.line(margin,y,margin,y+18);
+    doc.setLineWidth(0.2);doc.setDrawColor(180,210,180);doc.rect(margin,y,cw,18);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(26,107,74);
+    doc.text('NEXT SERVICE',margin+4,y+6);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(26,33,51);
+    const halfW=cw/2-4;
+    if(nsDate){doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(26,107,74);doc.text('DATE',margin+4,y+11);doc.setFont('helvetica','normal');doc.setTextColor(26,33,51);doc.setFontSize(9);doc.text(nsDate,margin+4,y+17);}
+    if(nsOdo){doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(26,107,74);doc.text('ODOMETER',margin+cw/2,y+11);doc.setFont('helvetica','normal');doc.setTextColor(26,33,51);doc.setFontSize(9);doc.text(nsOdo+' km',margin+cw/2,y+17);}
+    y+=22;
+  }
+
+  // ── Sign-off — 3-column bordered grid ────────────────────────
+  ensureRow(26);
+  const sw=cw/3;
+  const soH=22;
+  doc.setFillColor(228,236,241);doc.rect(margin,y,cw,soH,'F');
+  doc.setDrawColor(210,218,225);doc.setLineWidth(0.2);doc.rect(margin,y,cw,soH);
+  doc.line(margin+sw,y,margin+sw,y+soH);
+  doc.line(margin+sw*2,y,margin+sw*2,y+soH);
+  ['MECHANIC / TECHNICIAN','SUPERVISOR / SIGN-OFF','CUSTOMER ACCEPTANCE'].forEach((lbl,i)=>{
+    const cx=margin+i*sw+3;
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(26,107,138);
+    doc.text(lbl,cx,y+6);
+    doc.setFont('helvetica','normal');doc.setTextColor(26,33,51);doc.setFontSize(9);
+    const sigEl=[document.getElementById('sigMechanic'),document.getElementById('sigSupervisor'),document.getElementById('sigCustomer')][i];
+    doc.text(sigEl?.value||'',cx,y+15);
+  });
+  y+=soH+4;
+
+  // ── Navy footer ───────────────────────────────────────────────
+  const footerY=Math.max(y+2, ph-20);
+  doc.setFillColor(13,33,55);doc.rect(0,footerY,pw,20,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(170,200,218);
+  doc.text('Moonee Valley Bus Lines Pty. Ltd.',pw/2,footerY+6,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(122,173,202);
+  doc.text('6 Tullamarine Park Road, Tullamarine Victoria 3043  \u2014  PO Box 773 Tullamarine 3043',pw/2,footerY+11,{align:'center',maxWidth:cw});
+  doc.text('Ph: 03 9310 5286  \u00b7  M: 0411 132 359  \u00b7  E: daniel.higginson@mooneevalleybus.com.au  \u00b7  ABN 41 004 679 378',pw/2,footerY+17,{align:'center',maxWidth:cw});
+
+  const _spPdfB64 = doc.output('datauristring').split(',')[1];
+  doc.save('Job-Card-'+currentRef+'.pdf');
+  toast('PDF saved','ok');
+  return _spPdfB64;
+}
+
+// ── SharePoint ────────────────────────────────────────────────────
+const SP_CLIENT_KEY='mvbl_sp_client',SP_TENANT_KEY='mvbl_sp_tenant',SP_TOKEN_KEY='mvbl_sp_token',SP_TOKEN_EXP='mvbl_sp_token_exp',SP_USER_KEY='mvbl_sp_user';
+const SP_LIBRARY='Workshop System Files';
+const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'auth-redirect.html';
+const SCOPES='https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Files.ReadWrite.All offline_access openid profile';
+function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function pkceChallenge(){const v=b64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return{verifier:v,challenge:b64url(h)};}
+
+// Check if we just returned from Microsoft sign-in (via auth-redirect.html)
+if (sessionStorage.getItem('sp_just_signed_in') === '1') {
+  sessionStorage.removeItem('sp_just_signed_in');
+  setTimeout(() => {
+    submitToSharePoint();
+    toast('Signed in to Microsoft', 'ok');
+  }, 300);
+}
+
+function getToken(){const t=localStorage.getItem(SP_TOKEN_KEY);const e=parseInt(localStorage.getItem(SP_TOKEN_EXP)||'0');if(t&&Date.now()<e)return t;return null;}
+function submitToSharePoint(){const c=localStorage.getItem(SP_CLIENT_KEY)||'';const t=localStorage.getItem(SP_TENANT_KEY)||'';document.getElementById('spClientId').value=c;document.getElementById('spTenantId').value=t;document.getElementById('spProgress').style.display='none';document.getElementById('spProgressBar').style.width='0%';document.getElementById('spProgressBar').style.background='#0078d4';document.getElementById('spModal').style.display='flex';if(!c||!t){showSpSetup();}else{hideSpSetup();const tok=getToken();const user=localStorage.getItem(SP_USER_KEY)||'';if(tok)showSignedIn(user);else showSignIn();}}
+function closeSpModal(){document.getElementById('spModal').style.display='none';}
+function showSpSetup(){document.getElementById('spSetupSection').style.display='block';document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='none';}
+function hideSpSetup(){document.getElementById('spSetupSection').style.display='none';}
+function showSignIn(){document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='flex';document.getElementById('spSubmitBtn').style.display='none';}
+function showSignedIn(user){document.getElementById('spSignedInUser').textContent=user;document.getElementById('spSignedInSection').style.display='block';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='flex';}
+function saveSpConfig(){const c=document.getElementById('spClientId').value.trim();const t=document.getElementById('spTenantId').value.trim();if(!c||!t){toast('Please enter both IDs','err');return;}localStorage.setItem(SP_CLIENT_KEY,c);localStorage.setItem(SP_TENANT_KEY,t);hideSpSetup();showSignIn();toast('Settings saved','ok');}
+function spSignOut(){localStorage.removeItem(SP_TOKEN_KEY);localStorage.removeItem(SP_TOKEN_EXP);localStorage.removeItem(SP_USER_KEY);localStorage.removeItem('sp_refresh_token');showSignIn();toast('Signed out','inf');}
+async function spSignIn(){const clientId=localStorage.getItem(SP_CLIENT_KEY);const tenantId=localStorage.getItem(SP_TENANT_KEY);if(!clientId||!tenantId){showSpSetup();return;}const{verifier,challenge}=await pkceChallenge();const state=b64url(crypto.getRandomValues(new Uint8Array(16)));sessionStorage.setItem('sp_pkce_verifier',verifier);sessionStorage.setItem('sp_auth_state',state);const authUrl=new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`);authUrl.searchParams.set('client_id',clientId);authUrl.searchParams.set('response_type','code');authUrl.searchParams.set('redirect_uri',REDIRECT_URI);authUrl.searchParams.set('scope',SCOPES);authUrl.searchParams.set('state',state);authUrl.searchParams.set('code_challenge',challenge);authUrl.searchParams.set('code_challenge_method','S256');authUrl.searchParams.set('response_mode','query');authUrl.searchParams.set('prompt','select_account');sessionStorage.setItem('sp_return_url',window.location.href);window.location.href=authUrl.toString();}
+async function graphCall(method,path,body,isBinary){const token=getToken();if(!token)throw new Error('Not signed in');const url='https://graph.microsoft.com/v1.0'+path;const opts={method,headers:{'Authorization':'Bearer '+token,'Content-Type':isBinary?'application/octet-stream':'application/json'}};if(body!==undefined)opts.body=isBinary?body:JSON.stringify(body);const resp=await fetch(url,opts);if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`Graph error ${resp.status}`);}const ct=resp.headers.get('content-type')||'';if(resp.status===204||!ct.includes('application/json'))return{};return resp.json();}
+function b64ToBuffer(b64){const bin=atob(b64);const buf=new ArrayBuffer(bin.length);const arr=new Uint8Array(buf);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return buf;}
+function setProgress(pct,msg,detail){document.getElementById('spProgressBar').style.width=pct+'%';document.getElementById('spProgressMsg').textContent=msg;if(detail!==undefined)document.getElementById('spProgressDetail').textContent=detail;}
+function spError(msg){document.getElementById('spProgressMsg').textContent='⚠ '+msg;document.getElementById('spProgressBar').style.background='#c0292b';document.getElementById('spProgressBar').style.width='100%';document.getElementById('spProgressDetail').textContent='Check setup guide for help.';}
+async function doSubmitToSharePoint(){
+  if(!getToken()){spSignIn();return;}
+  document.getElementById('spProgress').style.display='block';
+  document.getElementById('spSubmitBtn').disabled=true;
+  try{
+    setProgress(10,'Generating PDF…','');
+    const pdfBase64 = await exportPDF();
+    const pdfBuffer = b64ToBuffer(pdfBase64);
+    setProgress(25,'Connecting to SharePoint…','');
+    const siteInfo=await graphCall('GET','/sites/mvbus.sharepoint.com:/sites/Workshop-MooneeValleyBusLines:');
+    const siteId=siteInfo.id;
+    const drivesInfo=await graphCall('GET',`/sites/${siteId}/drives`);
+    const drive=drivesInfo.value.find(d=>d.name===SP_LIBRARY||d.name.toLowerCase()===SP_LIBRARY.toLowerCase()||(d.webUrl&&d.webUrl.toLowerCase().includes(SP_LIBRARY.toLowerCase().replace(/ /g,'%20'))));
+    if(!drive)throw new Error(`Library "${SP_LIBRARY}" not found`);
+    const driveId=drive.id;
+    const _rego=document.getElementById('rego').value||'';
+    const _fleet=document.getElementById('fleetNo').value||'';
+    const _date=document.getElementById('dateIn').value||new Date().toISOString().split('T')[0];
+    // Folder name: YYYY-MM-DD_REGO_FLEET
+    const _rawDate = document.getElementById('dateIn').value || new Date().toISOString().split('T')[0];
+    const _rego = document.getElementById('rego').value || '';
+    const _fleet = document.getElementById('fleetNo').value || '';
+    const _safe = s => (s||'').replace(/[^a-zA-Z0-9]/g,'').trim();
+    const folderName = [_rawDate, _safe(_rego), _safe(_fleet)].filter(Boolean).join('_').substring(0,100) || 'JobCard-' + new Date().toISOString().split('T')[0];
+    const fileName = folderName + '.pdf';
+    setProgress(55,'Creating folder…','Job Cards/'+folderName);
+    try{await graphCall('POST',`/drives/${driveId}/root/children`,{name:'Job Cards',folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    try{await graphCall('POST',`/drives/${driveId}/root:/Job Cards:/children`,{name:folderName,folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    setProgress(75,'Uploading PDF…',fileName);
+    await graphCall('PUT',`/drives/${driveId}/root:/Job Cards/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}:/content`,pdfBuffer,true);
+    setProgress(100,'✓ Submitted successfully!','PDF saved to Job Cards folder');
+    document.getElementById('spProgressBar').style.background='#16a34a';
+    setTimeout(()=>{closeSpModal();document.getElementById('spSubmitBtn').disabled=false;toast('✓ Submitted to SharePoint','ok');saveCard();},1800);
+  }catch(err){console.error(err);document.getElementById('spSubmitBtn').disabled=false;spError(err.message);}
+}
+function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;setTimeout(()=>{el.className='toast';},2500);}
+</script>
+</body>
+</html>

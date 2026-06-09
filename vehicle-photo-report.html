@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Vehicle Photo Report — MVBL</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:   #0d2137;
+  --navy2:  #163352;
+  --teal:   #1a6b8a;
+  --teallt: #d0e8f0;
+  --bg:     #e4e7ec;
+  --paper:  #ffffff;
+  --panel:  #f0f4f7;
+  --mid:    #dde3e9;
+  --muted:  #6b7a8d;
+  --ink:    #1a2533;
+  --border: #c5ced8;
+  --red:    #c0292b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  width: 100%; max-width: 780px;
+  background: var(--navy);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 14px; border-radius: 2px;
+}
+.toolbar-title {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: #aec8d8; flex: 1;
+}
+.btn {
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 7px 14px; border: none; cursor: pointer; border-radius: 2px;
+  transition: all 0.12s; white-space: nowrap;
+}
+.btn-clear  { background: rgba(255,255,255,0.1); color: #cde; border: 1px solid rgba(255,255,255,0.2); }
+.btn-clear:hover { background: rgba(255,255,255,0.2); }
+.btn-pdf    { background: #0d7c4e; color: #fff; }
+.btn-pdf:hover  { background: #095c39; }
+
+/* ── Document ── */
+.doc {
+  width: 100%; max-width: 780px;
+  background: var(--paper);
+  box-shadow: 0 2px 24px rgba(13,33,55,0.18);
+}
+
+/* ── Header ── */
+.doc-header {
+  background: var(--navy);
+  padding: 22px 28px 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+  border-bottom: 3px solid var(--teal);
+}
+.company-name {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 22px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: #fff; line-height: 1; margin-bottom: 4px;
+}
+.company-sub {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 10px;
+}
+.company-detail {
+  font-size: 11px; color: #7aadca; line-height: 1.7;
+}
+.doc-title-block { text-align: right; }
+.doc-title {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 26px; font-weight: 700; color: #fff; line-height: 1;
+  margin-bottom: 12px;
+}
+.meta-row { display: flex; justify-content: flex-end; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.meta-label { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #567a8d; white-space: nowrap; }
+.meta-input {
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  color: #d4e8f4; background: transparent; border: none; text-align: right;
+  width: 160px; padding: 0;
+}
+.meta-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+.meta-input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── Photo grid ── */
+.photo-section { padding: 20px; }
+.section-label {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--mid); }
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.photo-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.slot-label {
+  background: var(--navy2);
+  color: #fff;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 6px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.slot-label span { opacity: 0.5; font-size: 10px; font-weight: 400; font-family: 'Inter', sans-serif; letter-spacing: 0; }
+
+.slot-body {
+  position: relative;
+  background: var(--panel);
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 0.15s;
+}
+
+.slot-body:hover { background: var(--teallt); }
+.slot-body.has-photo { background: #000; cursor: default; }
+
+.slot-preview {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: none;
+  max-height: 240px;
+}
+.slot-body.has-photo .slot-preview { display: block; }
+
+.slot-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--muted); text-align: center; padding: 16px;
+}
+.slot-body.has-photo .slot-placeholder { display: none; }
+
+.slot-icon { font-size: 32px; opacity: 0.4; }
+.slot-hint { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.slot-hint2 { font-size: 10px; opacity: 0.6; }
+
+.slot-actions {
+  display: flex; gap: 0;
+  border-top: 1px solid var(--mid);
+}
+
+.slot-btn {
+  flex: 1;
+  font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 8px; border: none; cursor: pointer; transition: all 0.12s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+
+.slot-btn-take { background: var(--teal); color: #fff; }
+.slot-btn-take:hover { background: var(--navy2); }
+.slot-btn-upload { background: var(--panel); color: var(--muted); border-left: 1px solid var(--mid); }
+.slot-btn-upload:hover { background: var(--mid); color: var(--ink); }
+.slot-btn-remove { background: #fff0f0; color: var(--red); border-left: 1px solid var(--mid); display: none; }
+.slot-btn-remove:hover { background: var(--red); color: #fff; }
+.slot-body.has-photo ~ .slot-actions .slot-btn-take { display: none; }
+.slot-body.has-photo ~ .slot-actions .slot-btn-upload { display: none; }
+.slot-body.has-photo ~ .slot-actions .slot-btn-remove { display: flex; flex: 1; }
+
+/* Hidden file inputs */
+input[type=file] { display: none; }
+
+/* ── Footer ── */
+.doc-footer {
+  background: var(--navy);
+  padding: 12px 28px;
+  text-align: center;
+  font-size: 10.5px;
+  color: #567a8d;
+  line-height: 1.8;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  padding: 10px 18px; color: #fff; opacity: 0; transform: translateY(8px);
+  transition: all 0.18s; pointer-events: none; z-index: 9999; border-radius: 2px;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok  { background: #0d7c4e; }
+.toast.err { background: #b91c1c; }
+.toast.inf { background: #1a5c8a; }
+
+/* ── Print / PDF ── */
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: none; padding: 0; }
+  .toolbar { display: none; }
+  .doc { box-shadow: none; }
+  .slot-actions { display: none; }
+  .slot-placeholder { display: none !important; }
+  .slot-body { min-height: unset; background: #f0f0f0 !important; cursor: default; }
+  .slot-body.has-photo { background: #000 !important; }
+  .slot-preview { max-height: 200px; }
+  .photo-grid { gap: 10px; }
+  .photo-section { padding: 14px; }
+  button { display: none !important; }
+  input[type=text] { border: none !important; }
+}
+@page { margin: 8mm; size: A4; }
+</style>
+</head>
+<body>
+<div id="load-error" style="display:none;position:fixed;inset:0;background:#0d2137;color:#fff;font-family:sans-serif;padding:40px;z-index:99999;">
+  <h2 style="color:#f87171;margin-bottom:12px;">⚠ Loading Error</h2>
+  <p id="load-error-msg" style="font-size:14px;line-height:1.6;color:#aac8da;"></p>
+  <p style="margin-top:16px;font-size:12px;color:#567a8d;">Try: hard refresh (Ctrl+Shift+R), or check internet connection.</p>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-title">Vehicle Photo Report</span>
+  <button class="btn btn-clear" onclick="clearAll()">🗑 Clear All</button>
+  <button class="btn btn-pdf"   onclick="exportPDF()">📄 Save PDF</button>
+  <button class="btn btn-sp"    onclick="submitToSharePoint()">☁ SharePoint</button>
+</div>
+
+<!-- Document -->
+<div class="doc" id="reportDoc">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div>
+      <div class="company-name">Moonee Valley Bus Lines</div>
+      <div class="company-sub">Vehicle Photo Report</div>
+      <div class="company-detail">
+        6 Tullamarine Park Road, Tullamarine VIC 3043<br>
+        Ph: 03 9310 5286 &nbsp;·&nbsp; M: 0411 132 359
+      </div>
+    </div>
+    <div class="doc-title-block">
+      <div class="doc-title">PHOTOS</div>
+      <div class="meta-row">
+        <span class="meta-label">Rego</span>
+        <input class="meta-input" id="vehRego" type="text" placeholder="ABC 123" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Fleet No.</span>
+        <input class="meta-input" id="vehFleet" type="text" placeholder="e.g. 042">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Date of Accident</span>
+        <input class="meta-input" id="accidentDate" type="date">
+      </div>
+    </div>
+  </div>
+
+  <!-- Photos -->
+  <div class="photo-section">
+    <div class="section-label">Vehicle Photographs</div>
+    <div class="photo-grid" id="photoGrid">
+      <!-- Slots injected by JS -->
+    </div>
+  </div>
+
+  <!-- Damage Photos -->
+  <div class="photo-section" style="border-top:1px solid var(--mid);">
+    <div class="section-label" style="margin-bottom:10px;">
+      Damage Photographs
+      <span id="damageCount" style="font-size:10px;color:var(--teal);font-weight:700;letter-spacing:0;text-transform:none;"></span>
+    </div>
+    <div class="photo-grid" id="damageGrid"></div>
+    <button onclick="addDamageSlot()" style="
+      margin-top:12px;width:100%;
+      font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+      letter-spacing:0.06em;text-transform:uppercase;
+      background:transparent;color:var(--teal);
+      border:1.5px dashed var(--border);
+      padding:12px;cursor:pointer;transition:all 0.15s;">
+      + Add Damage Photo
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    Moonee Valley Bus Lines Pty. Ltd. &nbsp;·&nbsp;
+    6 Tullamarine Park Road, Tullamarine VIC 3043 &nbsp;·&nbsp;
+    ABN 41 004 679 378
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var d = document.getElementById('load-error');
+  var m = document.getElementById('load-error-msg');
+  if (d && m) {
+    m.textContent = 'JavaScript error: ' + msg + (line ? ' (line ' + line + ')' : '');
+    d.style.display = 'block';
+  }
+  return false;
+};
+
+const SLOTS = [
+  { id: 'front', label: 'Front',            hint: 'Include registration plate' },
+  { id: 'left',  label: 'Left Side (NS)',   hint: 'Near side — full length' },
+  { id: 'rear',  label: 'Rear',            hint: 'Include registration plate' },
+  { id: 'right', label: 'Right Side (OS)', hint: 'Off side — full length' },
+  { id: 'odo',   label: 'Odometer',        hint: 'Clear reading visible' },
+  { id: 'vin',   label: 'VIN / Chassis',   hint: 'Plate or stamped number' },
+];
+
+// Dynamic damage photos
+let damagePhotos = []; // array of { id, data, label }
+let damageCounter = 0;
+
+// Photo data store (base64)
+const photos = {};
+
+// ── Build grid ─────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  SLOTS.forEach(slot => {
+    const div = document.createElement('div');
+    div.className = 'photo-slot';
+    div.id = 'slot-' + slot.id;
+    div.innerHTML = `
+      <div class="slot-label">
+        ${slot.label}
+        <span>${slot.hint}</span>
+      </div>
+      <div class="slot-body" id="body-${slot.id}" onclick="triggerCamera('${slot.id}')">
+        <img class="slot-preview" id="preview-${slot.id}" alt="${slot.label}">
+        <div class="slot-placeholder">
+          <div class="slot-icon">📷</div>
+          <div class="slot-hint">Tap to take photo</div>
+          <div class="slot-hint2">or use button below</div>
+        </div>
+      </div>
+      <div class="slot-actions">
+        <button class="slot-btn slot-btn-take"   onclick="triggerCamera('${slot.id}')">📷 Camera</button>
+        <button class="slot-btn slot-btn-upload" onclick="triggerUpload('${slot.id}')">🖼 Upload</button>
+        <button class="slot-btn slot-btn-remove" onclick="removePhoto('${slot.id}')">✕ Remove</button>
+      </div>
+      <input type="file" id="cam-${slot.id}"    accept="image/*" capture="environment" onchange="loadPhoto('${slot.id}', this)">
+      <input type="file" id="upload-${slot.id}" accept="image/*"                       onchange="loadPhoto('${slot.id}', this)">
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function triggerCamera(id) {
+  if (photos[id]) return; // already has photo — don't re-trigger on preview click
+  document.getElementById('cam-' + id).click();
+}
+function triggerUpload(id) { document.getElementById('upload-' + id).click(); }
+
+function loadPhoto(id, input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photos[id] = e.target.result;
+    document.getElementById('preview-' + id).src = e.target.result;
+    document.getElementById('body-' + id).classList.add('has-photo');
+    input.value = '';
+    const slotInfo = SLOTS.find(s => s.id === id); toast('Photo added: ' + (slotInfo ? slotInfo.label : id), 'ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePhoto(id) {
+  delete photos[id];
+  document.getElementById('preview-' + id).src = '';
+  document.getElementById('body-' + id).classList.remove('has-photo');
+}
+
+function clearAll() {
+  if (!confirm('Remove all photos and clear form?')) return;
+  SLOTS.forEach(s => removePhoto(s.id));
+  damagePhotos = [];
+  damageCounter = 0;
+  document.getElementById('damageGrid').innerHTML = '';
+  updateDamageCount();
+  ['vehRego','vehFleet'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('accidentDate').value = new Date().toISOString().split('T')[0];
+  toast('Cleared', 'inf');
+}
+
+// ── Damage photo functions ─────────────────────────────────────────
+function addDamageSlot() {
+  damageCounter++;
+  const id = 'dmg-' + damageCounter;
+  const num = damageCounter;
+
+  const div = document.createElement('div');
+  div.className = 'photo-slot';
+  div.id = 'slot-' + id;
+  div.innerHTML = `
+    <div class="slot-label">
+      Damage Photo ${num}
+      <span style="display:flex;align-items:center;gap:6px;">
+        <input type="text" id="dlabel-${id}" placeholder="e.g. Front bumper" value=""
+          style="font-family:Inter,sans-serif;font-size:10px;background:rgba(255,255,255,0.12);border:none;border-bottom:1px solid rgba(255,255,255,0.3);color:#fff;padding:1px 4px;width:120px;outline:none;"
+          onclick="event.stopPropagation()">
+      </span>
+    </div>
+    <div class="slot-body" id="body-${id}" onclick="triggerDamageCamera('${id}')">
+      <img class="slot-preview" id="preview-${id}" alt="Damage ${num}">
+      <div class="slot-placeholder">
+        <div class="slot-icon">📷</div>
+        <div class="slot-hint">Tap to take photo</div>
+        <div class="slot-hint2">or use button below</div>
+      </div>
+    </div>
+    <div class="slot-actions">
+      <button class="slot-btn slot-btn-take"   onclick="triggerDamageCamera('${id}')">📷 Camera</button>
+      <button class="slot-btn slot-btn-upload" onclick="triggerDamageUpload('${id}')">🖼 Upload</button>
+      <button class="slot-btn slot-btn-remove" onclick="removeDamageSlot('${id}')">✕ Remove</button>
+    </div>
+    <input type="file" id="cam-${id}"    accept="image/*" capture="environment" onchange="loadDamagePhoto('${id}',this)">
+    <input type="file" id="upload-${id}" accept="image/*"                       onchange="loadDamagePhoto('${id}',this)">
+  `;
+  document.getElementById('damageGrid').appendChild(div);
+  updateDamageCount();
+  // scroll to new slot
+  setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+}
+
+function triggerDamageCamera(id) {
+  const body = document.getElementById('body-' + id);
+  if (body && body.classList.contains('has-photo')) return;
+  document.getElementById('cam-' + id).click();
+}
+function triggerDamageUpload(id) { document.getElementById('upload-' + id).click(); }
+
+function loadDamagePhoto(id, input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    // Update or add to damagePhotos array
+    const existing = damagePhotos.find(p => p.id === id);
+    if (existing) existing.data = e.target.result;
+    else damagePhotos.push({ id, data: e.target.result });
+    document.getElementById('preview-' + id).src = e.target.result;
+    document.getElementById('body-' + id).classList.add('has-photo');
+    // Show remove, hide take/upload
+    const actions = document.querySelector('#slot-' + id + ' .slot-actions');
+    actions.querySelector('.slot-btn-take').style.display = 'none';
+    actions.querySelector('.slot-btn-upload').style.display = 'none';
+    actions.querySelector('.slot-btn-remove').style.display = 'flex';
+    input.value = '';
+    updateDamageCount();
+    toast('Damage photo added', 'ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeDamageSlot(id) {
+  damagePhotos = damagePhotos.filter(p => p.id !== id);
+  const el = document.getElementById('slot-' + id);
+  if (el) el.remove();
+  updateDamageCount();
+}
+
+function updateDamageCount() {
+  const count = damagePhotos.length;
+  const el = document.getElementById('damageCount');
+  if (el) el.textContent = count > 0 ? count + ' photo' + (count > 1 ? 's' : '') : '';
+}
+
+// ── PDF Export ──────────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const PW = 210, PH = 297, ML = 10, MR = 10, MT = 0, CW = PW - ML - MR;
+
+  const NAVY   = [13, 33, 55];
+  const NAVY2  = [22, 51, 82];
+  const TEAL   = [26, 107, 138];
+  const TEALLT = [208, 232, 240];
+  const WHITE  = [255, 255, 255];
+  const MUTED  = [107, 122, 141];
+  const PANEL  = [240, 244, 247];
+
+  const rego        = document.getElementById('vehRego').value || '—';
+  const fleet       = document.getElementById('vehFleet').value || '—';
+  const rawDate = document.getElementById('accidentDate').value; const accDate = rawDate ? new Date(rawDate + 'T00:00:00').toLocaleDateString('en-AU') : '—';
+  const generated   = new Date().toLocaleDateString('en-AU');
+
+  // ── Header ────────────────────────────────────────────────────────
+  const hdrH = 38;
+  doc.setFillColor(...NAVY); doc.rect(0, 0, PW, hdrH, 'F');
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(...WHITE);
+  doc.text('MOONEE VALLEY BUS LINES', ML, 13);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...TEALLT);
+  doc.text('VEHICLE PHOTO REPORT', ML, 18);
+  doc.setFontSize(8.5); doc.setTextColor(168, 196, 212);
+  doc.text('6 Tullamarine Park Road, Tullamarine VIC 3043  ·  Ph: 03 9310 5286  ·  M: 0411 132 359', ML, 23);
+
+  // Right meta
+  const mRow = (lbl, val, yy) => {
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(86,122,141);
+    doc.text(lbl + ':', PW-MR-50, yy);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(212,232,244);
+    doc.text(val, PW-MR, yy, { align: 'right' });
+  };
+  mRow('Registration',   rego,    12);
+  mRow('Fleet No.',      fleet,   18);
+  mRow('Date of Accident', accDate, 24);
+  mRow('Generated',      generated, 30);
+
+  // Teal stripe
+  doc.setFillColor(...TEAL); doc.rect(0, hdrH, PW, 2, 'F');
+
+  let y = hdrH + 2;
+
+  // ── Photos ────────────────────────────────────────────────────────
+  // 2 columns, slots sized to fit page
+  const colW    = (CW - 6) / 2;   // two columns with gap
+  const colH    = 68;              // height per slot
+  const labelH  = 8;
+  const imgH    = colH - labelH;
+  const colGap  = 6;
+  const rowGap  = 6;
+  const footerH = 16;
+  const pageBody = PH - footerH;
+
+  const drawPageFooter = () => {
+    doc.setFillColor(...NAVY); doc.rect(0, PH - footerH, PW, footerH, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(86,122,141);
+    doc.text(
+      'Moonee Valley Bus Lines Pty. Ltd.  ·  ABN 41 004 679 378  ·  Generated: ' + generated,
+      PW / 2, PH - footerH + 7, { align: 'center' }
+    );
+  };
+
+  const slotsToRender = SLOTS.filter(s => photos[s.id]);
+  const allSlots = SLOTS; // render all slots even without photos
+
+  let col = 0;
+
+  allSlots.forEach((slot, idx) => {
+    // Check if we need a new page
+    if (y + colH + rowGap > pageBody) {
+      drawPageFooter();
+      doc.addPage();
+      y = 8;
+    }
+
+    const x = ML + col * (colW + colGap);
+
+    // Slot background
+    doc.setFillColor(...PANEL); doc.rect(x, y, colW, colH, 'F');
+    doc.setDrawColor(...[197, 206, 216]); doc.setLineWidth(0.3);
+    doc.rect(x, y, colW, colH);
+
+    // Label bar
+    doc.setFillColor(...NAVY2); doc.rect(x, y, colW, labelH, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+    doc.text(slot.label.toUpperCase(), x + 3, y + 5.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...TEALLT);
+    doc.text(slot.hint, x + colW - 2, y + 5.5, { align: 'right' });
+
+    // Photo or placeholder
+    if (photos[slot.id]) {
+      try {
+        // Fit image inside the slot preserving aspect ratio
+        const imgY = y + labelH + 1;
+        const maxW = colW - 2;
+        const maxH = imgH - 2;
+
+        // Get natural dimensions via an offscreen image
+        const img = new Image();
+        img.src = photos[slot.id];
+        const natW = img.naturalWidth || 400;
+        const natH = img.naturalHeight || 300;
+        const ratio = natW / natH;
+
+        let drawW = maxW, drawH = maxW / ratio;
+        if (drawH > maxH) { drawH = maxH; drawW = maxH * ratio; }
+        const drawX = x + 1 + (maxW - drawW) / 2;
+
+        const fmt = photos[slot.id].startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(photos[slot.id], fmt, drawX, imgY, drawW, drawH);
+      } catch (e) {
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(...MUTED);
+        doc.text('Image error', x + colW/2, y + labelH + imgH/2, { align: 'center' });
+      }
+    } else {
+      // Empty placeholder
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+      doc.text('No photo taken', x + colW/2, y + labelH + imgH/2, { align: 'center' });
+    }
+
+    // Advance grid position
+    col++;
+    if (col >= 2) {
+      col = 0;
+      y += colH + rowGap;
+    }
+  });
+
+  // If ended on col 1, advance y for the footer check
+  if (col !== 0) y += colH + rowGap;
+
+  // ── Damage photos section ──────────────────────────────────────
+  if (damagePhotos.length > 0) {
+    // Section heading
+    if (y + 10 > pageBody) { drawPageFooter(); doc.addPage(); y = 8; }
+    doc.setFillColor(228,236,241); doc.rect(0, y, PW, 8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
+    doc.text('DAMAGE PHOTOGRAPHS', ML + 4, y + 5.5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text(damagePhotos.length + ' photo' + (damagePhotos.length > 1 ? 's' : ''), PW - MR, y + 5.5, { align: 'right' });
+    y += 8 + rowGap;
+
+    let dcol = 0;
+    damagePhotos.forEach(dp => {
+      if (y + colH + rowGap > pageBody) {
+        drawPageFooter(); doc.addPage(); y = 8;
+      }
+      const dx = ML + dcol * (colW + colGap);
+      const labelText = document.getElementById('dlabel-' + dp.id)?.value || 'Damage';
+
+      doc.setFillColor(...PANEL); doc.rect(dx, y, colW, colH, 'F');
+      doc.setDrawColor(197,206,216); doc.setLineWidth(0.3); doc.rect(dx, y, colW, colH);
+      doc.setFillColor(192,41,43); doc.rect(dx, y, colW, labelH, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+      doc.text(labelText.toUpperCase() || 'DAMAGE', dx + 3, y + 5.5);
+
+      try {
+        const imgY = y + labelH + 1;
+        const maxW = colW - 2, maxH = imgH - 2;
+        const img = new Image(); img.src = dp.data;
+        const natW = img.naturalWidth || 400, natH = img.naturalHeight || 300;
+        const ratio = natW / natH;
+        let drawW = maxW, drawH = maxW / ratio;
+        if (drawH > maxH) { drawH = maxH; drawW = maxH * ratio; }
+        const drawX = dx + 1 + (maxW - drawW) / 2;
+        const fmt = dp.data.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(dp.data, fmt, drawX, imgY, drawW, drawH);
+      } catch(e) {
+        doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(...MUTED);
+        doc.text('Image error', dx + colW/2, y + labelH + imgH/2, { align:'center' });
+      }
+
+      dcol++;
+      if (dcol >= 2) { dcol = 0; y += colH + rowGap; }
+    });
+    if (dcol !== 0) y += colH + rowGap;
+  }
+
+  drawPageFooter();
+
+  const filename = `Vehicle-Photos_${rego}_${accDate.replace(/\//g,'-')}.pdf`;
+  const _spPdfB64 = doc.output('datauristring').split(',')[1];
+  doc.save(filename);
+  toast('PDF saved', 'ok');
+  return _spPdfB64;
+}
+
+// ── Toast ───────────────────────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 2500);
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  buildGrid();
+  // Set today's date as default
+  document.getElementById('accidentDate').value = new Date().toISOString().split('T')[0];
+});
+
+// ── SharePoint ────────────────────────────────────────────────────────────────
+const SP_CLIENT_KEY='mvbl_sp_client', SP_TENANT_KEY='mvbl_sp_tenant';
+const SP_TOKEN_KEY='mvbl_sp_token', SP_TOKEN_EXP='mvbl_sp_token_exp', SP_USER_KEY='mvbl_sp_user';
+const SP_LIBRARY='Workshop System Files';
+const SP_REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'auth-redirect.html';
+const SP_SCOPES = 'https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Files.ReadWrite.All offline_access openid profile';
+
+function spB64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function spPkce(){const v=spB64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return{verifier:v,challenge:spB64url(h)};}
+function spGetToken(){const t=localStorage.getItem(SP_TOKEN_KEY);const e=parseInt(localStorage.getItem(SP_TOKEN_EXP)||'0');return(t&&Date.now()<e)?t:null;}
+
+function submitToSharePoint(){
+  const c=localStorage.getItem(SP_CLIENT_KEY)||'', t=localStorage.getItem(SP_TENANT_KEY)||'';
+  document.getElementById('spClientId').value=c; document.getElementById('spTenantId').value=t;
+  document.getElementById('spProgress').style.display='none';
+  document.getElementById('spProgressBar').style.width='0%'; document.getElementById('spProgressBar').style.background='#0078d4';
+  document.getElementById('spModal').style.display='flex';
+  if(!c||!t){spShowSetup();} else {spHideSetup(); if(spGetToken())spShowSignedIn(localStorage.getItem(SP_USER_KEY)||''); else spShowSignIn();}
+}
+function spCloseModal(){document.getElementById('spModal').style.display='none';}
+function spShowSetup(){document.getElementById('spSetupSection').style.display='block';document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='none';}
+function spHideSetup(){document.getElementById('spSetupSection').style.display='none';}
+function spShowSignIn(){document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='flex';document.getElementById('spSubmitBtn').style.display='none';}
+function spShowSignedIn(user){document.getElementById('spSignedInUser').textContent=user;document.getElementById('spSignedInSection').style.display='block';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='flex';}
+function spSaveConfig(){const c=document.getElementById('spClientId').value.trim(),t=document.getElementById('spTenantId').value.trim();if(!c||!t){alert('Enter both IDs');return;}localStorage.setItem(SP_CLIENT_KEY,c);localStorage.setItem(SP_TENANT_KEY,t);spHideSetup();spShowSignIn();}
+function spSignOut(){[SP_TOKEN_KEY,SP_TOKEN_EXP,SP_USER_KEY,'sp_refresh_token'].forEach(k=>localStorage.removeItem(k));spShowSignIn();}
+async function spSignIn(){
+  const clientId=localStorage.getItem(SP_CLIENT_KEY),tenantId=localStorage.getItem(SP_TENANT_KEY);
+  if(!clientId||!tenantId){spShowSetup();return;}
+  const{verifier,challenge}=await spPkce();
+  const state=spB64url(crypto.getRandomValues(new Uint8Array(16)));
+  sessionStorage.setItem('sp_pkce_verifier',verifier);sessionStorage.setItem('sp_auth_state',state);
+  sessionStorage.setItem('sp_return_url',window.location.href);
+  const u=new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`);
+  u.searchParams.set('client_id',clientId);u.searchParams.set('response_type','code');
+  u.searchParams.set('redirect_uri',SP_REDIRECT_URI);u.searchParams.set('scope',SP_SCOPES);
+  u.searchParams.set('state',state);u.searchParams.set('code_challenge',challenge);
+  u.searchParams.set('code_challenge_method','S256');u.searchParams.set('response_mode','query');
+  u.searchParams.set('prompt','select_account');
+  window.location.href=u.toString();
+}
+async function spGraphCall(method,path,body,isBinary){
+  const token=spGetToken();if(!token)throw new Error('Not signed in');
+  const url='https://graph.microsoft.com/v1.0'+path;
+  const opts={method,headers:{'Authorization':'Bearer '+token,'Content-Type':isBinary?'application/octet-stream':'application/json'}};
+  if(body!==undefined)opts.body=isBinary?body:JSON.stringify(body);
+  const resp=await fetch(url,opts);
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error&&err.error.message)||'Graph error '+resp.status);}
+  const ct=resp.headers.get('content-type')||'';
+  if(resp.status===204||!ct.includes('application/json'))return{};
+  return resp.json();
+}
+function spB64ToBuffer(b64){const bin=atob(b64);const buf=new ArrayBuffer(bin.length);const arr=new Uint8Array(buf);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return buf;}
+function spSetProgress(pct,msg,detail){document.getElementById('spProgressBar').style.width=pct+'%';document.getElementById('spProgressMsg').textContent=msg;if(detail!==undefined)document.getElementById('spProgressDetail').textContent=detail;}
+
+async function spDoSubmit(){
+  if(!spGetToken()){spSignIn();return;}
+  document.getElementById('spProgress').style.display='block';
+  document.getElementById('spSubmitBtn').disabled=true;
+  try{
+    spSetProgress(10,'Generating PDF...','');
+    const pdfB64 = await exportPDF();
+    const pdfBuffer = spB64ToBuffer(pdfB64);
+    spSetProgress(25,'Connecting to SharePoint...','');
+    const siteInfo = await spGraphCall('GET','/sites/mvbus.sharepoint.com:/sites/Workshop-MooneeValleyBusLines:');
+    const siteId = siteInfo.id;
+    const drivesInfo = await spGraphCall('GET',`/sites/${siteId}/drives`);
+    const drive = drivesInfo.value.find(d=>d.name===SP_LIBRARY||(d.webUrl&&d.webUrl.toLowerCase().includes(SP_LIBRARY.toLowerCase().replace(/ /g,'%20'))));
+    if(!drive) throw new Error(`Library "${SP_LIBRARY}" not found`);
+    const driveId = drive.id;
+    // Folder: YYYY-MM-DD_REGO_FLEET
+    const _date = (document.getElementById('accidentDate').value||'').replace(/\//g,'-').replace(/\s/g,'');
+    const _rego = document.getElementById('vehRego').value||'';
+    const _fleet = document.getElementById('vehFleet').value||'';
+    const _safe = s=>(s||'').replace(/[^a-zA-Z0-9]/g,'').trim();
+    const folderName = [_date,_safe(_rego),_safe(_fleet)].filter(Boolean).join('_').substring(0,100) || 'PhotoReport-'+new Date().toISOString().split('T')[0];
+    const fileName = folderName+'.pdf';
+    spSetProgress(45,'Creating folder...','/Photo Reports/'+folderName);
+    try{await spGraphCall('POST',`/drives/${driveId}/root/children`,{name:'Photo Reports',folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    try{await spGraphCall('POST',`/drives/${driveId}/root:/Photo Reports:/children`,{name:folderName,folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    spSetProgress(70,'Uploading PDF...',fileName);
+    await spGraphCall('PUT',`/drives/${driveId}/root:/Photo Reports/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}:/content`,pdfBuffer,true);
+    spSetProgress(100,'Submitted successfully!','Saved to Photo Reports/'+folderName);
+    document.getElementById('spProgressBar').style.background='#16a34a';
+    setTimeout(()=>{spCloseModal();document.getElementById('spSubmitBtn').disabled=false;},1800);
+  }catch(err){
+    console.error(err);
+    document.getElementById('spSubmitBtn').disabled=false;
+    document.getElementById('spProgressMsg').textContent='Error: '+err.message;
+    document.getElementById('spProgressBar').style.background='#c0292b';
+    document.getElementById('spProgressBar').style.width='100%';
+  }
+}
+
+// Check if returning from Microsoft sign-in
+if(sessionStorage.getItem('sp_just_signed_in')==='1'){
+  sessionStorage.removeItem('sp_just_signed_in');
+  setTimeout(()=>{submitToSharePoint();},400);
+}
+
+</script>
+
+<!-- SharePoint Modal -->
+<div id="spModal" style="display:none;position:fixed;inset:0;background:rgba(13,33,55,0.85);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#1a2c42;padding:28px;width:400px;max-width:95vw;border-top:3px solid #0078d4;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#0078d4;margin-bottom:6px;">Submit to SharePoint</div>
+    <div id="spModalMsg" style="font-size:12px;color:#7aadca;margin-bottom:18px;line-height:1.6;">Uploads PDF to Workshop System Files on SharePoint.</div>
+    <div id="spSetupSection" style="display:none;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#1a6b8a;margin-bottom:10px;font-weight:700;">One-time Setup</div>
+      <div style="margin-bottom:10px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Client ID</div><input id="spClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <div style="margin-bottom:14px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Tenant ID</div><input id="spTenantId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <button onclick="spSaveConfig()" style="width:100%;background:#0078d4;color:#fff;border:none;padding:9px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">Save Settings</button>
+    </div>
+    <div id="spSignedInSection" style="display:none;margin-bottom:14px;">
+      <div style="background:#0d2a1a;border:1px solid #166534;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="color:#22c55e;font-size:14px;">&#10003;</span>
+        <div><div style="font-size:11px;font-weight:600;color:#22c55e;">Signed in to Microsoft</div><div style="font-size:10px;color:#4a7a5a;" id="spSignedInUser"></div></div>
+        <button onclick="spSignOut()" style="margin-left:auto;background:transparent;border:1px solid #166534;color:#4a7a5a;font-size:10px;padding:3px 8px;cursor:pointer;">Sign out</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="spSignInBtn" onclick="spSignIn()" style="flex:1;background:#0078d4;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#128272; Sign in with Microsoft</button>
+      <button id="spSubmitBtn" onclick="spDoSubmit()" style="flex:1;background:#0d7c4e;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#9729; Submit to SharePoint</button>
+      <button onclick="spCloseModal()" style="background:rgba(255,255,255,0.08);color:#6b7a8d;border:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;">Cancel</button>
+    </div>
+    <div id="spProgress" style="display:none;">
+      <div style="font-size:11px;color:#7aadca;margin-bottom:6px;font-weight:600;" id="spProgressMsg">Preparing...</div>
+      <div style="background:#0d2137;height:5px;border-radius:2px;overflow:hidden;margin-bottom:8px;"><div id="spProgressBar" style="height:100%;background:#0078d4;width:0%;transition:width 0.4s;"></div></div>
+      <div id="spProgressDetail" style="font-size:10px;color:#4a6070;"></div>
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+      <button onclick="spShowSetup()" style="background:transparent;border:none;color:#344d5e;font-size:10px;cursor:pointer;text-decoration:underline;">&#9881; Change settings</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

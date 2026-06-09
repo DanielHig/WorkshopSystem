@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accident Quote System — Moonee Valley Bus Lines</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:    #0d2137;
+  --navy2:   #163352;
+  --teal:    #1a6b8a;
+  --teal-lt: #d0e8f0;
+  --accent:  #1a6b8a;
+  --rule:    #c5ced8;
+  --bg:      #eef1f4;
+  --paper:   #ffffff;
+  --light:   #f0f4f7;
+  --mid:     #dde3e9;
+  --muted:   #6b7a8d;
+  --ink:     #1a2533;
+  --green:   #1a6b4a;
+  --section-bg: #e4ecf1;
+  --section-stripe: #ccdde6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--navy);
+  padding: 10px 14px;
+  border-radius: 2px;
+}
+
+.toolbar-title {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aec8d8;
+  flex: 1;
+  min-width: 100px;
+}
+
+.toolbar-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.15); margin: 0 4px; }
+
+.btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.btn-ghost  { background: rgba(255,255,255,0.1); color: #cde; border: 1px solid rgba(255,255,255,0.2); }
+.btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-save   { background: #1a5c8a; color: #fff; }
+.btn-save:hover { background: #13456b; }
+.btn-pdf    { background: #0d7c4e; color: #fff; }
+.btn-pdf:hover  { background: #095c39; }
+.btn-export { background: #5c3d8a; color: #fff; }
+.btn-export:hover { background: #432c66; }
+.btn-word  { background: #2b5fa6; color: #fff; }
+.btn-word:hover  { background: #1e4278; }
+.btn-excel { background: #1e7145; color: #fff; }
+.btn-excel:hover { background: #155231; }
+.btn-dup   { background: #1a5c4a; color: #fff; }
+.btn-dup:hover   { background: #0f3d30; }
+
+#importInput { display: none; }
+
+/* ── Saved panel ── */
+.saved-panel {
+  width: 100%;
+  max-width: 900px;
+  background: var(--navy2);
+  color: #fff;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: none;
+  border-radius: 2px;
+}
+.saved-panel.open { display: block; }
+.saved-panel h2 {
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: #7aadca; margin-bottom: 10px;
+}
+.saved-list { display: flex; flex-direction: column; gap: 5px; }
+.saved-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.07); padding: 8px 12px; cursor: pointer;
+}
+.saved-item:hover { background: rgba(255,255,255,0.13); }
+.saved-item-info { flex: 1; }
+.saved-item-ref  { font-weight: 700; font-size: 13px; }
+.saved-item-meta { font-size: 11px; color: #8aadbe; margin-top: 1px; }
+.saved-item-copy {
+  font-size: 10px; color: #7acdaa; cursor: pointer; padding: 3px 8px;
+  background: rgba(26,107,74,0.15); border: none; font-weight: 600; text-transform: uppercase;
+}
+.saved-item-copy:hover { background: rgba(26,107,74,0.3); }
+.saved-item-del  {
+  font-size: 10px; color: #f87171; cursor: pointer; padding: 3px 8px;
+  background: rgba(255,0,0,0.1); border: none; font-weight: 600; text-transform: uppercase;
+}
+.saved-item-del:hover { background: rgba(255,0,0,0.25); }
+.no-saved { color: #6a8a9a; font-size: 12px; font-style: italic; }
+
+/* ── Quote doc ── */
+.quote {
+  width: 100%;
+  max-width: 900px;
+  background: var(--paper);
+  box-shadow: 0 2px 24px rgba(13,33,55,0.18);
+}
+
+/* ── Doc header ── */
+.doc-header {
+  background: var(--navy);
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+.doc-header-left {
+  padding: 22px 28px 18px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+.doc-header-right {
+  padding: 22px 28px 18px;
+  text-align: right;
+  min-width: 240px;
+}
+
+.company-name-input {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 0;
+  line-height: 1.1;
+}
+.company-name-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+.company-name-input::placeholder { color: rgba(255,255,255,0.25); }
+
+.company-tagline {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6aadca;
+  margin-top: 3px;
+  margin-bottom: 10px;
+}
+
+.hdr-input {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  color: #a8c4d4;
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 1px 0;
+  line-height: 1.7;
+}
+.hdr-input:focus { outline: none; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25); }
+.hdr-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.doc-type {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #6aadca;
+  margin-bottom: 4px;
+}
+
+.doc-type-selector {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  justify-content: flex-end;
+}
+.doc-type-btn {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #7aadca;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.doc-type-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.doc-type-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+@media print { .doc-type-selector { display: none !important; } }
+
+.doc-title {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.meta-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #567a8d;
+  white-space: nowrap;
+}
+.meta-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4e8f4;
+  background: transparent;
+  border: none;
+  text-align: right;
+  width: 155px;
+  padding: 0;
+}
+.meta-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+.meta-input::placeholder { color: rgba(255,255,255,0.18); }
+
+/* Teal stripe */
+.teal-stripe { height: 3px; background: linear-gradient(90deg, var(--teal) 0%, #3aaacf 100%); }
+
+/* ── Bill-to / vehicle row ── */
+.info-band {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  border-bottom: 2px solid var(--navy);
+}
+
+.info-col {
+  padding: 12px 20px;
+  border-right: 1px solid var(--mid);
+}
+.info-col:last-child { border-right: none; }
+
+.info-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 5px;
+}
+
+.info-input {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  width: 100%;
+  padding: 2px 0;
+  line-height: 1.6;
+  margin-bottom: 1px;
+}
+.info-input:focus { outline: none; border-bottom-color: var(--teal); }
+.info-input::placeholder { color: #c0c8d0; }
+
+/* ── Main table area ── */
+.table-area { padding: 0; }
+
+/* Section */
+.section-block { border-bottom: 1px solid var(--mid); }
+
+.section-header {
+  display: grid;
+  grid-template-columns: 38px 1fr 110px 100px 100px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.section-header-cell {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.section-header-cell.desc { text-align: left; }
+.section-header-cell.num  { text-align: right; }
+
+.section-name-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 110px 100px 100px;
+  background: var(--section-bg);
+  border-top: 1px solid var(--section-stripe);
+  border-bottom: 1px solid var(--section-stripe);
+}
+
+.section-name-cell {
+  grid-column: 1 / -1;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  padding: 6px 10px 6px 48px;
+  background: var(--section-bg);
+  letter-spacing: 0.02em;
+}
+
+/* Item rows */
+.item-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 110px 100px 100px;
+  border-bottom: 1px solid var(--light);
+  min-height: 30px;
+  align-items: start;
+}
+
+.item-row:hover { background: #f7fafb; }
+
+.item-cell {
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+  border-right: 1px solid var(--light);
+}
+.item-cell:last-child { border-right: none; }
+
+.item-cell.center { justify-content: center; padding-top: 8px; }
+.item-cell.right  { justify-content: flex-end; }
+.item-cell.right .cell-input { padding-top: 8px; }
+
+.row-num {
+  font-size: 10px;
+  color: #b0bec8;
+  text-align: center;
+  width: 100%;
+  user-select: none;
+  padding: 0 4px;
+}
+
+.cell-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 6px 10px;
+  min-height: 30px;
+  box-sizing: border-box;
+}
+.cell-input:focus { outline: none; background: #f0f8ff; }
+.cell-input::placeholder { color: #ccd5de; }
+.cell-input.right { text-align: right; }
+/* Description textarea */
+.cell-input.desc-ta {
+  resize: none;
+  overflow: hidden;
+  line-height: 1.45;
+  height: 30px;
+  display: block;
+  vertical-align: top;
+}
+
+/* Add row button row */
+.add-row-btn-row {
+  padding: 2px 8px;
+  background: var(--light);
+  border-bottom: 1px solid var(--mid);
+}
+.add-row-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--teal);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 6px;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+.add-row-btn:hover { opacity: 1; }
+
+/* Section subtotal row */
+.subtotal-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 110px 100px 100px;
+  background: var(--section-stripe);
+  border-top: 1.5px solid #a8c4d4;
+}
+
+.subtotal-label {
+  grid-column: 1 / 5;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--navy2);
+  padding: 6px 12px;
+}
+
+.subtotal-value {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  text-align: right;
+  padding: 6px 10px;
+  border-left: 1px solid #a8c4d4;
+}
+
+/* Grand totals */
+.totals-area {
+  border-top: 2px solid var(--navy);
+}
+
+.total-row {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  border-bottom: 1px solid var(--mid);
+}
+
+.total-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 7px 14px;
+  text-align: right;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.total-val {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  text-align: right;
+  padding: 7px 10px;
+  border-left: 1px solid var(--mid);
+}
+
+.total-row.grand-row {
+  background: var(--navy);
+}
+.total-row.grand-row .total-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #aac8da;
+  letter-spacing: 0.08em;
+}
+.total-row.grand-row .total-val {
+  font-size: 18px;
+  color: #ffffff;
+  border-left-color: rgba(255,255,255,0.15);
+}
+
+.gst-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  width: 36px;
+  text-align: center;
+  color: var(--muted);
+  padding: 0;
+}
+.gst-input:focus { outline: none; border-bottom-color: var(--teal); }
+
+/* Notes */
+.notes-area {
+  padding: 14px 20px;
+  border-top: 1px solid var(--mid);
+  background: var(--light);
+}
+.notes-label {
+  font-size: 8.5px; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--teal); margin-bottom: 5px;
+}
+.notes-textarea {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px dashed var(--rule);
+  width: 100%;
+  padding: 8px 10px;
+  min-height: 52px;
+  resize: vertical;
+  line-height: 1.6;
+}
+.notes-textarea:focus { outline: none; border-color: var(--teal); }
+.notes-textarea::placeholder { color: #c0c8d0; }
+
+/* Doc footer */
+.doc-footer {
+  background: var(--navy);
+  padding: 14px 28px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.footer-addr {
+  width: 100%;
+  text-align: center;
+  font-size: 10.5px;
+  color: #7aadca;
+  line-height: 1.7;
+}
+.footer-addr input {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  color: #7aadca;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 100%;
+  text-align: center;
+}
+.footer-addr input:focus { outline: none; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25); }
+.footer-addr input::placeholder { color: rgba(255,255,255,0.2); }
+
+
+/* Status toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  padding: 10px 18px; color: #fff; opacity: 0; transform: translateY(8px);
+  transition: all 0.18s; pointer-events: none; z-index: 9999; border-radius: 2px;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok  { background: #0d7c4e; }
+.toast.err { background: #b91c1c; }
+.toast.inf { background: #1a5c8a; }
+
+
+/* ── Toggle switch ── */
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toggle-track {
+  display: inline-block;
+  width: 32px;
+  height: 17px;
+  background: #c5ced8;
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+}
+input[type=checkbox]:checked + .toggle-track { background: var(--teal); }
+input[type=checkbox] { display: none; }
+.toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 13px; height: 13px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+input[type=checkbox]:checked + .toggle-track .toggle-thumb { left: 17px; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: none; padding: 0; margin: 0; }
+  .toolbar, .saved-panel { display: none !important; }
+  .quote { box-shadow: none; max-width: 100%; width: 100%; }
+  .item-row:hover { background: none; }
+  .add-row-hint { display: none; }
+  .add-row-btn-row { display: none; }
+  input, textarea { border: none !important; outline: none !important; }
+  .doc-header { padding: 16px 20px 14px; }
+  .company-name-input { font-size: 20px; }
+  .doc-footer { padding: 10px 20px 8px; }
+  .footer-addr input { font-size: 9.5px; }
+  .total-row { page-break-inside: avoid; }
+  .section-block { page-break-inside: avoid; }
+}
+@page { margin: 10mm; size: A4; }
+</style>
+</head>
+<body>
+<div id="load-error" style="display:none;position:fixed;inset:0;background:#0d2137;color:#fff;font-family:sans-serif;padding:40px;z-index:99999;">
+  <h2 style="color:#f87171;margin-bottom:12px;">⚠ Loading Error</h2>
+  <p id="load-error-msg" style="font-size:14px;line-height:1.6;color:#aac8da;"></p>
+  <p style="margin-top:16px;font-size:12px;color:#567a8d;">Try: hard refresh (Ctrl+Shift+R), or check internet connection.</p>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-title">Accident Quote System</span>
+  <button class="btn btn-ghost" onclick="toggleSaved()">📂 Saved</button>
+  <button class="btn btn-ghost" onclick="newQuote()">+ New</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-export" onclick="exportJSON()">⬇ Export JSON</button>
+  <button class="btn btn-export" onclick="document.getElementById('importInput').click()">⬆ Import JSON</button>
+  <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-save" onclick="saveQuote()">💾 Save</button>
+  <button class="btn btn-dup"  onclick="duplicateCurrent()" id="dupBtn" title="Duplicate this document as a new Quote, Invoice or Estimate" style="display:none;">⧉ Duplicate</button>
+  <button class="btn btn-pdf"  onclick="exportPDF()">📄 PDF</button>
+  <button class="btn btn-word" onclick="exportWord()">📝 Word</button>
+  <button class="btn btn-excel" onclick="exportExcel()">📊 Excel</button>
+  <button class="btn btn-sp"    onclick="submitToSharePoint()">☁ SharePoint</button>
+</div>
+
+<!-- Saved panel -->
+<div class="saved-panel" id="savedPanel">
+  <h2>Saved Quotes</h2>
+  <div class="saved-list" id="savedList"></div>
+</div>
+
+<!-- Quote document -->
+<div class="quote" id="quoteDoc">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <input class="company-name-input" id="companyName" type="text" placeholder="COMPANY NAME" maxlength="50" value="MOONEE VALLEY BUS LINES">
+      <div style="margin-top:12px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#567a8d;margin-bottom:4px;">Issued To</div>
+        <input class="hdr-input" id="issuedName"  placeholder="Company name"       value="Sura Australian Bus &amp; Coach">
+        <input class="hdr-input" id="issuedAddr"  placeholder="Address"            value="PO Box 1813">
+        <input class="hdr-input" id="issuedCity"  placeholder="City, State Postcode" value="North Sydney NSW 2059">
+        <input class="hdr-input" id="issuedEmail" placeholder="Email">
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#567a8d;margin-bottom:4px;">Reference No.</div>
+        <input class="hdr-input" id="jobRef" placeholder="Customer reference / PO number">
+      </div>
+    </div>
+    <div class="doc-header-right">
+      <div class="doc-type-selector">
+        <button class="doc-type-btn active" data-prefix="QT"  data-title="QUOTE"    data-label="Quote #"   onclick="setDocType(this)">Quote</button>
+        <button class="doc-type-btn"        data-prefix="INV" data-title="INVOICE"  data-label="Invoice #" onclick="setDocType(this)">Invoice</button>
+        <button class="doc-type-btn"        data-prefix="EST" data-title="ESTIMATE" data-label="Estimate #" onclick="setDocType(this)">Estimate</button>
+      </div>
+      <div class="doc-title" id="docTitle">QUOTE</div>
+      <div class="meta-row">
+        <span class="meta-label" id="refLabel">Quote #</span>
+        <input class="meta-input" id="quoteRef" type="text" placeholder="QT-202506-001" title="Auto-generated — click to edit">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Date</span>
+        <input class="meta-input" id="quoteDate" type="text">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Registration</span>
+        <input class="meta-input" id="vehReg" type="text" placeholder="AB21 XYZ">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Fleet #</span>
+        <input class="meta-input" id="vehFleet" type="text" placeholder="84">
+      </div>
+    </div>
+  </div>
+
+  <div class="teal-stripe"></div>
+
+  <!-- Info band -->
+  <div class="info-band" style="grid-template-columns: 1fr;">
+    <div class="info-col" style="border-right:none;">
+      <div class="info-label">Vehicle Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">
+        <div>
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7a8d;margin:4px 0 2px;">Make / Model</div>
+          <input class="info-input" id="vehModel" placeholder="e.g. Volvo B8RLE">
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7a8d;margin:4px 0 2px;">VIN</div>
+          <input class="info-input" id="vehVin" placeholder="Vehicle identification number">
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7a8d;margin:4px 0 2px;">Odometer</div>
+          <input class="info-input" id="vehMileage" placeholder="e.g. 187,540 km">
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7a8d;margin:4px 0 2px;">Date of Accident</div>
+          <input class="info-input" id="accidentDate" placeholder="DD/MM/YYYY">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-area">
+
+    <!-- Column headers (shown once) -->
+    <div class="section-header">
+      <div class="section-header-cell">Item</div>
+      <div class="section-header-cell desc">Description</div>
+      <div class="section-header-cell num">QTY / Labour Hrs</div>
+      <div class="section-header-cell num">Unit Price</div>
+      <div class="section-header-cell num">Total</div>
+    </div>
+
+    <!-- Sections -->
+    <div id="sectionsContainer"></div>
+
+  </div>
+
+  <!-- Grand totals -->
+  <div class="totals-area" id="totalsArea">
+    <div class="total-row">
+      <div class="total-label">Subtotal</div>
+      <div class="total-val" id="grandEx">$0.00</div>
+    </div>
+
+    <!-- GST row — toggleable -->
+    <div class="total-row" id="gstRow">
+      <div class="total-label" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+        <label class="toggle-label" title="Toggle GST">
+          <input type="checkbox" id="gstEnabled" checked onchange="recalcAll()">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+        GST&nbsp;(<input class="gst-input" id="gstRate" type="number" value="10" min="0" max="100">%)
+      </div>
+      <div class="total-val" id="grandGST">$0.00</div>
+    </div>
+
+    <!-- Excess row — toggleable -->
+    <div class="total-row" id="excessRow">
+      <div class="total-label" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+        <label class="toggle-label" title="Toggle excess deduction">
+          <input type="checkbox" id="excessEnabled" onchange="recalcAll()">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+        Excess deduction
+        <input class="gst-input" id="excessAmt" type="number" value="0" min="0" step="50" style="width:70px;text-align:right;" oninput="recalcAll()" placeholder="0.00">
+      </div>
+      <div class="total-val" id="grandExcess" style="color:#b91c1c;">-$0.00</div>
+    </div>
+
+    <div class="total-row grand-row">
+      <div class="total-label">Balance Due</div>
+      <div class="total-val" id="grandTotal">$0.00</div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-area">
+    <div class="notes-label">Notes &amp; Terms</div>
+    <textarea class="notes-textarea" id="quoteNotes" placeholder="Payment terms, warranty, exclusions, or additional information…"></textarea>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <div class="footer-addr">
+      <input type="text" id="footerLine1" placeholder="Company Pty. Ltd." value="Moonee Valley Bus Lines Pty. Ltd." style="font-weight:600;color:#aac8da;">
+      <input type="text" id="footerLine2" placeholder="Street Address — PO Box …" value="6 Tullamarine Park Road, Tullamarine VIC 3043  —  PO Box 773 Tullamarine 3043">
+      <input type="text" id="footerLine3" placeholder="Ph: 03 0000 0000   M: 0000 000 000" value="Ph: 03 9310 5286   M: 0411 132 359">
+      <input type="text" id="footerLine3b" placeholder="E: email@company.com.au" value="E: daniel.higginson@mooneevalleybus.com.au">
+      <input type="text" id="footerLine4" placeholder="ABN 00 000 000 000" value="ABN 41 004 679 378">
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var d = document.getElementById('load-error');
+  var m = document.getElementById('load-error-msg');
+  if (d && m) {
+    m.textContent = 'JavaScript error: ' + msg + (src ? ' (line ' + line + ')' : '');
+    d.style.display = 'block';
+  }
+  return false;
+};
+
+// ── Config ───────────────────────────────────────────────────────
+const STORAGE_KEY = 'mvbl_quotes';
+let currentId = null;
+
+const SECTIONS = [
+  { id: 'rnr',   label: 'Remove / Refit',       subtotalLabel: 'R&R Hours Total' },
+  { id: 'rep',   label: 'Repair / Manufacture', subtotalLabel: 'Labour Hours Total' },
+  { id: 'paint', label: 'Paint',                subtotalLabel: 'Paint Hours Total' },
+  { id: 'mat',   label: 'Materials',            subtotalLabel: 'Materials Total' },
+];
+
+// ── Init ─────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  document.getElementById('quoteDate').value = new Date().toLocaleDateString('en-AU');
+  document.getElementById('gstRate').addEventListener('input', recalcAll);
+  buildSections();
+  generateRef();
+});
+
+// ── Build section blocks ──────────────────────────────────────────
+function buildSections(data = {}) {
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = '';
+
+  SECTIONS.forEach(sec => {
+    const rows = (data[sec.id] && data[sec.id].length) ? data[sec.id] : [emptyRow()];
+    const block = document.createElement('div');
+    block.className = 'section-block';
+    block.id = 'sec-' + sec.id;
+
+    // Section name row
+    const nameRow = document.createElement('div');
+    nameRow.className = 'section-name-row';
+    nameRow.innerHTML = `<div class="section-name-cell">${sec.label}</div>`;
+    block.appendChild(nameRow);
+
+    // Rows container
+    const rowsDiv = document.createElement('div');
+    rowsDiv.id = 'rows-' + sec.id;
+    block.appendChild(rowsDiv);
+
+    rows.forEach((r, i) => appendRow(rowsDiv, sec.id, r, i + 1));
+
+    // Add row button
+    const addBtn = document.createElement('div');
+    addBtn.className = 'add-row-btn-row';
+    addBtn.innerHTML = `<button class="add-row-btn" onclick="addRowToSection('${sec.id}')">+ Add Line</button>`;
+    block.appendChild(addBtn);
+
+    // Subtotal
+    const sub = document.createElement('div');
+    sub.className = 'subtotal-row';
+    sub.innerHTML = `
+      <div class="subtotal-label">${sec.subtotalLabel}</div>
+      <div class="subtotal-value" id="sub-${sec.id}">$0.00</div>
+    `;
+    block.appendChild(sub);
+
+    container.appendChild(block);
+  });
+
+  recalcAll();
+  renumberAll();
+}
+
+function emptyRow() { return { desc: '', qty: '', price: '' }; }
+
+function appendRow(container, secId, data = {}, num = 1) {
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <div class="item-cell center"><span class="row-num">${num}</span></div>
+    <div class="item-cell"><textarea class="cell-input desc-ta" placeholder="Description…" rows="1" oninput="autoGrow(this);recalcSection('${secId}')" onkeydown="handleDescKey(event,'${secId}',this)">${esc(data.desc||'')}</textarea></div>
+    <div class="item-cell right"><input class="cell-input right" type="number" min="0" step="0.25" placeholder="0" value="${esc(data.qty||'')}" oninput="recalcSection('${secId}')" onkeydown="handleNumKey(event,'${secId}',this)"></div>
+    <div class="item-cell right"><input class="cell-input right" type="number" min="0" step="0.01" placeholder="0.00" value="${esc(data.price||'')}" oninput="recalcSection('${secId}')" onkeydown="handleNumKey(event,'${secId}',this)"></div>
+    <div class="item-cell right row-total-cell" style="padding-top:8px;padding-right:10px;font-size:12px;font-weight:600;color:var(--navy2);"></div>
+  `;
+  container.appendChild(row);
+  // Auto-grow on load if pre-filled
+  const ta = row.querySelector('textarea');
+  if (ta && data.desc) autoGrow(ta);
+}
+
+function autoGrow(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+// ── Add a new row to a section ───────────────────────────────────
+function addRowToSection(secId) {
+  const rowsDiv = document.getElementById('rows-' + secId);
+  const allRows = rowsDiv.querySelectorAll('.item-row');
+  const num = allRows.length + 1;
+  appendRow(rowsDiv, secId, {}, num);
+  const newRows = rowsDiv.querySelectorAll('.item-row');
+  newRows[newRows.length - 1].querySelector('textarea').focus();
+}
+
+// ── Key handlers ──────────────────────────────────────────────────
+// Called from textarea (description) — Enter adds a new row
+function handleDescKey(e, secId, ta) {
+  if (e.key === 'Enter') {
+    e.preventDefault(); // don't insert newline
+    addRowToSection(secId);
+  }
+  // Tab from textarea moves to qty field of same row
+  if (e.key === 'Tab' && !e.shiftKey) {
+    e.preventDefault();
+    const row = ta.closest('.item-row');
+    const qtyInput = row.querySelectorAll('input')[0];
+    if (qtyInput) qtyInput.focus();
+  }
+}
+
+// Called from number inputs (qty, price) — Tab from price adds new row if last
+function handleNumKey(e, secId, input) {
+  if (e.key !== 'Tab' || e.shiftKey) return;
+  const rowsDiv = document.getElementById('rows-' + secId);
+  const allRows = rowsDiv.querySelectorAll('.item-row');
+  const lastRow = allRows[allRows.length - 1];
+  // Is this the price input (index 1) of the last row?
+  const isLastPrice = lastRow && lastRow.querySelectorAll('input')[1] === input;
+  if (isLastPrice) {
+    const ta  = lastRow.querySelector('textarea');
+    const inp = lastRow.querySelectorAll('input');
+    const hasContent = (ta && ta.value.trim()) || inp[0].value || inp[1].value;
+    if (hasContent) {
+      e.preventDefault();
+      addRowToSection(secId);
+    }
+  }
+}
+
+// ── Recalc ────────────────────────────────────────────────────────
+function recalcSection(secId) {
+  const rowsDiv = document.getElementById('rows-' + secId);
+  let total = 0;
+  rowsDiv.querySelectorAll('.item-row').forEach(row => {
+    const inputs = row.querySelectorAll('input'); // qty=0, price=1 (desc is textarea)
+    const qty   = parseFloat(inputs[0].value) || 0;
+    const price = parseFloat(inputs[1].value) || 0;
+    const rowTotal = qty * price;
+    total += rowTotal;
+    const totalCell = row.querySelector('.row-total-cell');
+    if (totalCell) totalCell.textContent = (qty || price) ? fmtAUD(rowTotal) : '';
+  });
+  document.getElementById('sub-' + secId).textContent = fmtAUD(total);
+  recalcAll();
+}
+
+function recalcAll() {
+  let subtotal = 0;
+  SECTIONS.forEach(sec => {
+    const el = document.getElementById('sub-' + sec.id);
+    if (el) subtotal += parseFloat(el.textContent.replace(/[^0-9.-]/g,'')) || 0;
+  });
+
+  const gstEnabled = document.getElementById('gstEnabled').checked;
+  const gstRate    = parseFloat(document.getElementById('gstRate').value) || 0;
+  const gst        = gstEnabled ? subtotal * (gstRate / 100) : 0;
+
+  // Grey out GST value when disabled
+  document.getElementById('grandGST').style.opacity = gstEnabled ? '1' : '0.3';
+  document.getElementById('gstRate').disabled = !gstEnabled;
+
+  const excessEnabled = document.getElementById('excessEnabled').checked;
+  const excessAmt     = excessEnabled ? (parseFloat(document.getElementById('excessAmt').value) || 0) : 0;
+
+  // Grey out excess value when disabled
+  document.getElementById('grandExcess').style.opacity = excessEnabled ? '1' : '0.3';
+  document.getElementById('excessAmt').disabled = !excessEnabled;
+
+  const balance = subtotal + gst - excessAmt;
+
+  document.getElementById('grandEx').textContent     = fmtAUD(subtotal);
+  document.getElementById('grandGST').textContent    = fmtAUD(gst);
+  document.getElementById('grandExcess').textContent = '-' + fmtAUD(excessAmt);
+  document.getElementById('grandTotal').textContent  = fmtAUD(Math.max(0, balance));
+}
+
+function fmtAUD(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+function renumberAll() {
+  SECTIONS.forEach(sec => {
+    const rows = document.querySelectorAll('#rows-' + sec.id + ' .item-row');
+    rows.forEach((r, i) => {
+      const span = r.querySelector('.row-num');
+      if (span) span.textContent = i + 1;
+    });
+  });
+}
+
+function esc(v) { return String(v).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Collect / fill data ───────────────────────────────────────────
+function collectData() {
+  const secs = {};
+  SECTIONS.forEach(sec => {
+    secs[sec.id] = [];
+    document.querySelectorAll('#rows-' + sec.id + ' .item-row').forEach(row => {
+      const inp = row.querySelectorAll('input');
+      const ta = row.querySelector('textarea');
+      secs[sec.id].push({ desc: ta ? ta.value : '', qty: inp[0].value, price: inp[1].value });
+    });
+  });
+
+  return {
+    id: currentId || Date.now(),
+    savedAt: new Date().toISOString(),
+    docPrefix: currentPrefix, docTitle: currentDocTitle, docRefLabel: currentRefLabel,
+    companyName: v('companyName'),
+    quoteRef: v('quoteRef'), quoteDate: v('quoteDate'),
+    vehReg: v('vehReg'), vehFleet: v('vehFleet'), vehModel: v('vehModel'), vehVin: v('vehVin'), vehMileage: v('vehMileage'), accidentDate: v('accidentDate'),
+    issuedName: v('issuedName'), issuedAddr: v('issuedAddr'), issuedCity: v('issuedCity'), issuedEmail: v('issuedEmail'),
+    jobRef: v('jobRef'),
+    gstRate: v('gstRate'),
+    gstEnabled: document.getElementById('gstEnabled').checked,
+    excessEnabled: document.getElementById('excessEnabled').checked,
+    excessAmt: v('excessAmt'),
+    quoteNotes: v('quoteNotes'),
+    footerLine1: v('footerLine1'), footerLine2: v('footerLine2'),
+    footerLine3: v('footerLine3'), footerLine3b: v('footerLine3b'), footerLine4: v('footerLine4'),
+    sections: secs,
+  };
+}
+
+function v(id) { return document.getElementById(id).value; }
+
+function fillData(d) {
+  ['companyName','quoteRef','quoteDate','vehReg','vehFleet','vehModel','vehVin','vehMileage','accidentDate',
+   'issuedName','issuedAddr','issuedCity','issuedEmail','jobRef',
+   'gstRate','quoteNotes','footerLine1','footerLine2','footerLine3','footerLine3b','footerLine4'
+  ].forEach(f => { const el = document.getElementById(f); if (el && d[f] !== undefined) el.value = d[f]; });
+
+  // Restore doc type
+  if (d.docPrefix) {
+    currentPrefix   = d.docPrefix;
+    currentDocTitle = d.docTitle   || DOC_TYPES[d.docPrefix]?.title || 'QUOTE';
+    currentRefLabel = d.docRefLabel|| DOC_TYPES[d.docPrefix]?.label || 'Quote #';
+    document.getElementById('docTitle').textContent = currentDocTitle;
+    document.getElementById('refLabel').textContent = currentRefLabel;
+    document.querySelectorAll('.doc-type-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.prefix === d.docPrefix);
+    });
+  }
+  // Restore toggle states
+  if (d.gstEnabled !== undefined)    document.getElementById('gstEnabled').checked    = d.gstEnabled;
+  if (d.excessEnabled !== undefined) document.getElementById('excessEnabled').checked = d.excessEnabled;
+  if (d.excessAmt !== undefined)     document.getElementById('excessAmt').value       = d.excessAmt;
+  buildSections(d.sections || {});
+  recalcAll();
+}
+
+// ── localStorage ─────────────────────────────────────────────────
+function loadAll() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+}
+
+function saveQuote() {
+  const data = collectData();
+  currentId = data.id;
+  const all = loadAll();
+  const idx = all.findIndex(q => q.id === data.id);
+  if (idx >= 0) all[idx] = data; else all.push(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  toast('Quote saved', 'ok');
+  renderSavedList();
+  document.getElementById('dupBtn').style.display = '';
+}
+
+function loadQuote(id) {
+  const q = loadAll().find(q => q.id === id);
+  if (!q) return;
+  currentId = q.id;
+  fillData(q);
+  document.getElementById('savedPanel').classList.remove('open');
+  document.getElementById('dupBtn').style.display = '';
+  toast('Quote loaded', 'ok');
+}
+
+function deleteQuote(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this quote?')) return;
+  const all = loadAll().filter(q => q.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  if (currentId === id) newQuote();
+  renderSavedList();
+  toast('Deleted', 'err');
+}
+
+// ── Doc type state ───────────────────────────────────────────────
+let currentPrefix = 'QT';
+let currentDocTitle = 'QUOTE';
+let currentRefLabel = 'Quote #';
+
+const DOC_TYPES = {
+  QT:  { title: 'QUOTE',    label: 'Quote #'   },
+  INV: { title: 'INVOICE',  label: 'Invoice #' },
+  EST: { title: 'ESTIMATE', label: 'Estimate #' },
+};
+
+function setDocType(btn) {
+  // Update active button
+  document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPrefix   = btn.dataset.prefix;
+  currentDocTitle = btn.dataset.title;
+  currentRefLabel = btn.dataset.label;
+  // Update visible title and label
+  document.getElementById('docTitle').textContent  = currentDocTitle;
+  document.getElementById('refLabel').textContent  = currentRefLabel;
+  // Re-generate ref number for new type (only if not yet saved)
+  if (!currentId) generateRef();
+}
+
+function generateRef() {
+  // Format: PREFIX-YYYYMM-NNN
+  const now = new Date();
+  const ym  = now.getFullYear().toString() + String(now.getMonth() + 1).padStart(2, '0');
+  const all = loadAll();
+  // Find highest sequence for this prefix+month combo
+  const prefix = currentPrefix;
+  const pattern = new RegExp('^' + prefix + '-' + ym + '-(\\d+)$');
+  let maxSeq = 0;
+  all.forEach(q => {
+    if (!q.quoteRef) return;
+    const m = q.quoteRef.match(pattern);
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+  });
+  const seq = (maxSeq + 1).toString().padStart(3, '0');
+  document.getElementById('quoteRef').value = prefix + '-' + ym + '-' + seq;
+}
+
+function newQuote() {
+  currentId = null;
+  document.querySelectorAll('.quote input, .quote textarea').forEach(el => {
+    if (el.id !== 'gstRate') el.value = '';
+  });
+  document.getElementById('gstRate').value = 10;
+  document.getElementById('quoteDate').value = new Date().toLocaleDateString('en-AU');
+  // Restore standing defaults
+  document.getElementById('companyName').value  = 'MOONEE VALLEY BUS LINES';
+  document.getElementById('issuedName').value   = 'Sura Australian Bus & Coach';
+  document.getElementById('issuedAddr').value   = 'PO Box 1813';
+  document.getElementById('issuedCity').value   = 'North Sydney NSW 2059';
+  document.getElementById('footerLine1').value  = 'Moonee Valley Bus Lines Pty. Ltd.';
+  document.getElementById('footerLine2').value  = '6 Tullamarine Park Road, Tullamarine Victoria 3043  —  PO Box 773 Tullamarine 3043';
+  document.getElementById('footerLine3').value   = 'Ph: 03 9310 5286   M: 0411 132 359';
+  document.getElementById('footerLine3b').value  = 'E: daniel.higginson@mooneevalleybus.com.au';
+  document.getElementById('footerLine4').value  = 'ABN 41 004 679 378';
+  // Reset doc type to Quote
+  currentPrefix = 'QT'; currentDocTitle = 'QUOTE'; currentRefLabel = 'Quote #';
+  document.getElementById('docTitle').textContent = 'QUOTE';
+  document.getElementById('refLabel').textContent = 'Quote #';
+  document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.toggle('active', b.dataset.prefix === 'QT'));
+  document.getElementById('gstEnabled').checked    = true;
+  document.getElementById('excessEnabled').checked = false;
+  document.getElementById('excessAmt').value        = 0;
+  buildSections({});
+  generateRef();
+  document.getElementById('savedPanel').classList.remove('open');
+  document.getElementById('dupBtn').style.display = 'none';
+}
+
+// ── Duplicate document ───────────────────────────────────────────
+function duplicateQuote(sourceId, e) {
+  e.stopPropagation();
+  const source = loadAll().find(q => q.id === sourceId);
+  if (!source) { toast('Not found', 'err'); return; }
+  showDupModal(source);
+}
+
+function duplicateCurrent() {
+  // Save first so data is current
+  saveQuote();
+  const source = loadAll().find(q => q.id === currentId);
+  if (!source) { toast('Save first', 'inf'); return; }
+  showDupModal(source);
+}
+
+function showDupModal(source) {
+  // Remove any existing modal
+  const existing = document.getElementById('dupModal');
+  if (existing) existing.remove();
+
+  const ym = (() => {
+    const n = new Date();
+    return n.getFullYear().toString() + String(n.getMonth()+1).padStart(2,'0');
+  })();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'dupModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(13,33,55,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;';
+
+  const types = [
+    { prefix:'QT',  title:'QUOTE',    label:'Quote #'    },
+    { prefix:'INV', title:'INVOICE',  label:'Invoice #'  },
+    { prefix:'EST', title:'ESTIMATE', label:'Estimate #' },
+  ];
+
+  const btns = types.map(t => `
+    <button class="dup-pick" data-prefix="${t.prefix}" data-title="${t.title}" data-label="${t.label}"
+      style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;color:#d4e8f4;
+             background:${source.docPrefix===t.prefix?'rgba(26,107,138,0.4)':'rgba(255,255,255,0.06)'};
+             border:1px solid ${source.docPrefix===t.prefix?'#1a6b8a':'rgba(255,255,255,0.12)'};
+             padding:11px 16px;cursor:pointer;text-align:left;display:flex;
+             justify-content:space-between;align-items:center;width:100%;">
+      ${t.title}
+      <span style="font-size:10px;color:#567a8d;font-family:monospace;">${t.prefix}-${ym}-NNN</span>
+    </button>`).join('');
+
+  overlay.innerHTML = `
+    <div style="background:#1a2c42;padding:28px 32px;width:340px;border-top:3px solid #1a6b8a;">
+      <div style="font-family:'Roboto Condensed',sans-serif;font-size:12px;letter-spacing:0.18em;
+                  text-transform:uppercase;color:#6aadca;margin-bottom:6px;">Duplicate As</div>
+      <div style="font-size:11px;color:#567a8d;margin-bottom:18px;">
+        Copying all line items from <b style="color:#aac8da;">${source.quoteRef||'this document'}</b>.<br>
+        Original is kept unchanged.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">${btns}</div>
+      <button id="dupCancel" style="margin-top:14px;font-family:Inter,sans-serif;font-size:11px;
+              font-weight:600;text-transform:uppercase;background:transparent;
+              border:1px solid rgba(255,255,255,0.1);color:#567a8d;padding:7px 14px;
+              cursor:pointer;width:100%;">Cancel</button>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelectorAll('.dup-pick').forEach(btn => {
+    btn.onmouseenter = () => { btn.style.background = 'rgba(26,107,138,0.35)'; };
+    btn.onmouseleave = () => { btn.style.background = source.docPrefix===btn.dataset.prefix ? 'rgba(26,107,138,0.4)' : 'rgba(255,255,255,0.06)'; };
+    btn.onclick = () => {
+      overlay.remove();
+      finishDuplicate(source, { prefix: btn.dataset.prefix, title: btn.dataset.title, label: btn.dataset.label });
+    };
+  });
+
+  document.getElementById('dupCancel').onclick = () => overlay.remove();
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+}
+
+function finishDuplicate(source, choice) {
+  const copy      = JSON.parse(JSON.stringify(source));
+  copy.id         = Date.now();
+  copy.savedAt    = new Date().toISOString();
+  copy.quoteDate  = new Date().toLocaleDateString('en-AU');
+  copy.docPrefix  = choice.prefix;
+  copy.docTitle   = choice.title;
+  copy.docRefLabel= choice.label;
+
+  // Generate next ref number for this type+month
+  const all = loadAll();
+  const ym  = new Date().getFullYear().toString() + String(new Date().getMonth()+1).padStart(2,'0');
+  const pat = new RegExp('^' + choice.prefix + '-' + ym + '-(\d+)$');
+  let maxSeq = 0;
+  all.forEach(q => {
+    if (!q.quoteRef) return;
+    const m = q.quoteRef.match(pat);
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+  });
+  copy.quoteRef = choice.prefix + '-' + ym + '-' + (maxSeq+1).toString().padStart(3,'0');
+
+  all.push(copy);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+
+  currentId = copy.id;
+  fillData(copy);
+  document.getElementById('dupBtn').style.display = '';
+  renderSavedList();
+  document.getElementById('savedPanel').classList.remove('open');
+  toast('Created ' + copy.quoteRef + ' from ' + source.quoteRef, 'ok');
+}
+
+// ── Saved panel ───────────────────────────────────────────────────
+function toggleSaved() {
+  const p = document.getElementById('savedPanel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) renderSavedList();
+}
+
+function renderSavedList() {
+  const list = document.getElementById('savedList');
+  const all = loadAll();
+  if (!all.length) { list.innerHTML = '<div class="no-saved">No saved quotes yet.</div>'; return; }
+  list.innerHTML = '';
+  [...all].reverse().forEach(q => {
+    const div = document.createElement('div');
+    div.className = 'saved-item';
+    div.onclick = () => loadQuote(q.id);
+    const date = q.savedAt ? new Date(q.savedAt).toLocaleDateString('en-AU') : q.quoteDate;
+    div.innerHTML = `
+      <div class="saved-item-info">
+        <div class="saved-item-ref">${q.quoteRef||'No Ref'} — ${q.issuedName||'No Client'} <span style='font-size:10px;opacity:0.6;font-weight:400;'>${q.docTitle||'QUOTE'}</span></div>
+        <div class="saved-item-meta">${q.vehReg?q.vehReg+' · ':''}${q.vehModel||''} · Saved ${date}</div>
+      </div>
+      <button class="saved-item-copy" onclick="duplicateQuote(${q.id},event)">Copy</button>
+      <button class="saved-item-del" onclick="deleteQuote(${q.id},event)">Delete</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ── JSON Export / Import ──────────────────────────────────────────
+function exportJSON() {
+  const all = loadAll();
+  if (!all.length) { toast('No saved quotes to export', 'inf'); return; }
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'workshop-quotes-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Exported ' + all.length + ' quote' + (all.length>1?'s':''), 'ok');
+}
+
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const incoming = JSON.parse(evt.target.result);
+      const arr = Array.isArray(incoming) ? incoming : [incoming];
+      const existing = loadAll();
+      let added = 0, updated = 0;
+      arr.forEach(q => {
+        const idx = existing.findIndex(x => x.id === q.id);
+        if (idx >= 0) { existing[idx] = q; updated++; } else { existing.push(q); added++; }
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+      toast(`Imported: ${added} new, ${updated} updated`, 'ok');
+      renderSavedList();
+    } catch { toast('Invalid file', 'err'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── PDF Export ────────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const PW = 210, ML = 12, MR = 12, CW = PW - ML - MR;
+
+  const NAVY   = [13, 33, 55];
+  const NAVY2  = [22, 51, 82];
+  const TEAL   = [26, 107, 138];
+  const TEALLT = [208, 232, 240];
+  const SECBG  = [228, 236, 241];
+  const WHITE  = [255, 255, 255];
+  const BLACK  = [26, 37, 51];
+  const MUTED  = [107, 122, 141];
+  const LIGHT  = [240, 244, 247];
+
+  let y = 0;
+
+  // ── Collect all header values from the live form ────────────────
+  const companyName  = (v('companyName') || 'COMPANY NAME').toUpperCase();
+  const issuedName   = v('issuedName');
+  const issuedAddr   = v('issuedAddr');
+  const issuedCity   = v('issuedCity');
+  const issuedEmail  = v('issuedEmail');
+  const jobRef       = v('jobRef');
+  const quoteRef     = v('quoteRef');
+  const quoteDate    = v('quoteDate');
+  const vehReg       = v('vehReg');
+  const vehFleet     = v('vehFleet');
+  const vehModel     = v('vehModel');
+  const vehVin       = v('vehVin');
+  const vehMileage   = v('vehMileage');
+  const accidentDate = v('accidentDate');
+  const docTitle     = currentDocTitle || 'QUOTE';
+  const docRefLbl    = (currentRefLabel || 'Quote #').replace(' #', '');
+
+  // Measure how much space the issued-to block needs to size header dynamically
+  const issuedLines = [issuedName, issuedAddr, issuedCity, issuedEmail].filter(Boolean);
+  const hdrH = Math.max(46, 22 + issuedLines.length * 4.5);
+
+  // Header background
+  doc.setFillColor(...NAVY); doc.rect(0, 0, PW, hdrH, 'F');
+
+  // Left: company name (large)
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...WHITE);
+  doc.text(companyName, ML, 14);
+
+  // Left: issued-to details below company name
+  let hiy = 21;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(168, 196, 212);
+  if (issuedName)  { doc.setFontSize(7.5); doc.setTextColor(120,160,180); doc.text('Issued To:', ML, hiy); hiy += 4.5; }
+  doc.setFontSize(8.5); doc.setTextColor(200, 220, 232);
+  issuedLines.forEach(l => { doc.text(l, ML, hiy); hiy += 4.2; });
+  if (jobRef) {
+    hiy += 1;
+    doc.setFontSize(7.5); doc.setTextColor(120,160,180); doc.text('Reference No.:', ML, hiy); hiy += 4;
+    doc.setFontSize(8.5); doc.setTextColor(200,220,232); doc.text(jobRef, ML, hiy);
+  }
+
+  // Right: doc title (QUOTE / INVOICE / ESTIMATE)
+  doc.setFont('helvetica','bold'); doc.setFontSize(28); doc.setTextColor(...WHITE);
+  doc.text(docTitle, PW - MR, 20, { align:'right' });
+
+  // Right: meta rows
+  const mRow = (lbl, val, yy) => {
+    if (!val) return;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(86,122,141);
+    doc.text(lbl + ':', PW-MR-52, yy);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(212,232,244);
+    doc.text(val, PW-MR, yy, { align:'right' });
+  };
+  mRow(docRefLbl,      quoteRef,    28);
+  mRow('Date',         quoteDate,   34);
+  mRow('Registration', vehReg,      40);
+  if (vehFleet) mRow('Fleet #',    vehFleet,   hdrH - 4);
+
+  y = hdrH;
+
+  // Teal stripe
+  doc.setFillColor(...TEAL); doc.rect(0, y, PW, 2, 'F');
+  y += 2;
+
+  // Info band
+  const infoH = 26;
+  doc.setFillColor(...LIGHT); doc.rect(0, y, PW, infoH, 'F');
+
+  const infoBlock = (label, lines, x, w) => {
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...TEAL);
+    doc.text(label.toUpperCase(), x+2, y+5);
+    let iy = y + 10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...BLACK);
+    lines.filter(Boolean).forEach(l => {
+      const wrapped = doc.splitTextToSize(l, w-4);
+      wrapped.forEach(wl => { if (iy < y+infoH-1) { doc.text(wl, x+2, iy); iy += 4; } });
+    });
+  };
+
+  // Vehicle block — full width since issued-to is now in the header
+  const vehicleLines = [
+    vehModel     ? 'Make / Model: ' + vehModel       : '',
+    vehVin       ? 'VIN: '          + vehVin         : '',
+    vehMileage   ? 'Odometer: '     + vehMileage     : '',
+    accidentDate ? 'Date of Accident: ' + accidentDate: '',
+    vehReg       ? 'Registration: ' + vehReg         : '',
+    vehFleet     ? 'Fleet #: '      + vehFleet       : '',
+  ].filter(Boolean);
+  infoBlock('Vehicle Details', vehicleLines, ML, CW);
+
+  y += infoH;
+
+  // Border under info band
+  doc.setFillColor(...NAVY); doc.rect(0, y, PW, 1.5, 'F');
+  y += 1.5;
+
+  // Column headers
+  doc.setFillColor(...NAVY); doc.rect(0, y, PW, 8, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
+  const C_ITEM = 12, C_QTY = 34, C_UNIT = 32, C_TOTAL = 32;
+  const C_DESC = CW - C_ITEM - C_QTY - C_UNIT - C_TOTAL;
+  const cols = [
+    { label:'Item',       x: ML,                              w: C_ITEM,  align:'center' },
+    { label:'Description',x: ML+C_ITEM,                      w: C_DESC,  align:'left'   },
+    { label:'QTY/Labour', x: ML+C_ITEM+C_DESC,               w: C_QTY,   align:'right'  },
+    { label:'Unit Price', x: ML+C_ITEM+C_DESC+C_QTY,         w: C_UNIT,  align:'right'  },
+    { label:'Total',      x: ML+C_ITEM+C_DESC+C_QTY+C_UNIT,  w: C_TOTAL, align:'right'  },
+  ];
+  cols.forEach(c => doc.text(c.label, c.align==='right' ? c.x+c.w : c.align==='center' ? c.x+c.w/2 : c.x, y+5.5, { align: c.align }));
+  y += 8;
+
+  // ── Page-break helper ──────────────────────────────────────────
+  // FOOTER_H = 26mm footer + 4mm buffer; we keep this space free at bottom
+  const FOOTER_H  = 30;
+  const PAGE_H    = 297;
+  const BODY_MAX  = PAGE_H - FOOTER_H; // last y we can write content on any page
+
+  const drawColHeaders = () => {
+    doc.setFillColor(...NAVY); doc.rect(0, y, PW, 8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
+    cols.forEach(c => doc.text(c.label, c.align==='right' ? c.x+c.w : c.align==='center' ? c.x+c.w/2 : c.x, y+5.5, { align: c.align }));
+    y += 8;
+  };
+
+  // Collect footer values once
+  const fl1  = v('footerLine1');
+  const fl2  = v('footerLine2');
+  const fl3c = [v('footerLine3'), v('footerLine3b')].filter(Boolean).join('   ');
+  const fl4  = v('footerLine4');
+
+  const drawPageFooter = () => {
+    const fy = PAGE_H - 26;
+    doc.setFillColor(...NAVY); doc.rect(0, fy, PW, 26, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...TEALLT);
+    if (fl1) doc.text(fl1, PW/2, fy+5,  { align:'center' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(168,196,212);
+    if (fl2)  doc.text(fl2,  PW/2, fy+10, { align:'center', maxWidth: CW });
+    if (fl3c) doc.text(fl3c, PW/2, fy+15, { align:'center', maxWidth: CW });
+    doc.setTextColor(86,122,141);
+    if (fl4) doc.text(fl4, PW/2, fy+19, { align:'center' });
+  };
+
+  // Add a new page, redraw footer + column headers, return new y
+  const newPage = () => {
+    drawPageFooter();
+    doc.addPage();
+    y = 8;
+    drawColHeaders();
+  };
+
+  // Check if we need a new page before drawing something of height `needed`
+  const checkBreak = (needed) => {
+    if (y + needed > BODY_MAX) newPage();
+  };
+
+  // Sections
+  let grandEx = 0;
+  SECTIONS.forEach(sec => {
+    // Section name row — if not enough room, start a new page
+    checkBreak(7 + 7); // section header + at least one row
+    doc.setFillColor(...SECBG); doc.rect(0, y, PW, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
+    doc.text(sec.label, ML+12, y+5);
+    y += 7;
+
+    // Rows
+    const rowsDiv = document.getElementById('rows-' + sec.id);
+    let secTotal = 0;
+    let rowNum = 0;
+    rowsDiv.querySelectorAll('.item-row').forEach(row => {
+      const inp   = row.querySelectorAll('input');
+      const ta    = row.querySelector('textarea');
+      const desc  = ta ? ta.value : '';
+      const qty   = parseFloat(inp[0].value) || 0;
+      const price = parseFloat(inp[1].value) || 0;
+      if (!desc && !qty && !price) return;
+      rowNum++;
+      secTotal += qty * price;
+
+      // Wrap description and size row to fit
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const descLines = desc ? doc.splitTextToSize(desc, C_DESC - 4) : [''];
+      const lineH = 4.2;
+      const rowH  = Math.max(7, descLines.length * lineH + 4);
+
+      // Page break if this row won't fit
+      checkBreak(rowH);
+
+      // Alternating bg
+      if (rowNum % 2 === 0) { doc.setFillColor(...LIGHT); doc.rect(0, y, PW, rowH, 'F'); }
+
+      // Item number — vertically centred
+      doc.setTextColor(...MUTED);
+      doc.text(String(rowNum), ML+6, y + rowH/2 + 1, { align:'center' });
+
+      // Description — all wrapped lines, top-aligned with padding
+      doc.setTextColor(...BLACK);
+      doc.text(descLines, ML+C_ITEM+2, y+4.5, { lineHeightFactor: 1.3 });
+
+      // Numbers — top-aligned
+      const numY = y + 4.5;
+      if (qty)          doc.text(String(qty),               ML+C_ITEM+C_DESC+C_QTY-1,                numY, { align:'right' });
+      if (price)        doc.text('$'+price.toFixed(2),      ML+C_ITEM+C_DESC+C_QTY+C_UNIT-1,        numY, { align:'right' });
+      if (qty && price) doc.text('$'+(qty*price).toFixed(2),ML+C_ITEM+C_DESC+C_QTY+C_UNIT+C_TOTAL-1,numY, { align:'right' });
+
+      doc.setDrawColor(...[221,227,233]); doc.setLineWidth(0.2);
+      doc.line(0, y+rowH, PW, y+rowH);
+      y += rowH;
+    });
+
+    // Subtotal — keep on same page if possible
+    checkBreak(7);
+    doc.setFillColor(...TEALLT); doc.rect(0, y, PW, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY2);
+    doc.text(sec.subtotalLabel.toUpperCase(), PW-MR-C_TOTAL-2, y+5, { align:'right' });
+    doc.setFontSize(9.5); doc.setTextColor(...NAVY);
+    doc.text(fmtAUD(secTotal), PW-MR, y+5, { align:'right' });
+    doc.setDrawColor(...TEAL); doc.setLineWidth(0.5);
+    doc.line(0, y+7, PW, y+7);
+    grandEx += secTotal;
+    y += 7;
+  });
+
+  // Grand totals — try to keep together; if not enough room, new page
+  checkBreak(50);
+  y += 2;
+  doc.setFillColor(...WHITE); doc.setDrawColor(...[197,206,216]); doc.setLineWidth(0.3);
+
+  const tRow = (lbl, val, bold, isGrand) => {
+    if (isGrand) {
+      doc.setFillColor(...NAVY); doc.rect(0, y, PW, 10, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(170,200,218);
+      doc.text(lbl, PW-MR-42, y+7, { align:'right' });
+      doc.setFontSize(13); doc.setTextColor(...WHITE);
+      doc.text(val, PW-MR, y+7, { align:'right' });
+      y += 10;
+    } else {
+      doc.line(0, y, PW, y);
+      doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(9);
+      doc.setTextColor(...MUTED);
+      doc.text(lbl, PW-MR-42, y+6, { align:'right' });
+      doc.setTextColor(...NAVY); doc.setFont('helvetica','bold');
+      doc.text(val, PW-MR, y+6, { align:'right' });
+      y += 8;
+    }
+  };
+
+  const gstEnabled    = document.getElementById('gstEnabled').checked;
+  const gstRate       = parseFloat(v('gstRate')) || 0;
+  const gstAmt        = gstEnabled ? grandEx * (gstRate/100) : 0;
+  const excessEnabled = document.getElementById('excessEnabled').checked;
+  const excessAmt     = excessEnabled ? (parseFloat(v('excessAmt')) || 0) : 0;
+  const balance       = Math.max(0, grandEx + gstAmt - excessAmt);
+
+  tRow('Subtotal',            fmtAUD(grandEx),  false, false);
+  if (gstEnabled) tRow('GST (' + gstRate + '%)', fmtAUD(gstAmt), false, false);
+  if (excessEnabled && excessAmt > 0) tRow('Less Excess', '-' + fmtAUD(excessAmt), false, false);
+  tRow('BALANCE DUE',         fmtAUD(balance),  true,  true);
+
+  // Notes
+  const notes = v('quoteNotes');
+  if (notes) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    const nl = doc.splitTextToSize(notes, CW);
+    checkBreak(8 + nl.length * 4.5 + 3);
+    y += 4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...TEAL);
+    doc.text('NOTES & TERMS', ML, y);
+    y += 4;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    doc.text(nl, ML, y);
+    y += nl.length * 4.5 + 3;
+  }
+
+  // Footer on last page
+  drawPageFooter();
+
+
+
+
+  const ref = v('quoteRef') || 'quote';
+  const issued = v('issuedName') ? '-' + v('issuedName').replace(/\s+/g,'-') : '';
+  const _spPdfB64 = doc.output('datauristring').split(',')[1];
+  doc.save(`${ref}${issued}.pdf`);
+  toast('PDF saved', 'ok');
+  return _spPdfB64;
+}
+
+
+// ── Word Export (docx.js) ────────────────────────────────────────
+function exportWord() {
+  try {
+    const docxLib = window.docx;
+    if (!docxLib) { toast('Word library not loaded yet — please wait and try again', 'err'); return; }
+    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun,
+            HeadingLevel, AlignmentType, BorderStyle, ShadingType,
+            WidthType, TableLayoutType } = docxLib;
+
+    const gstEnabled    = document.getElementById('gstEnabled').checked;
+    const gstRate       = parseFloat(v('gstRate')) || 0;
+    const excessEnabled = document.getElementById('excessEnabled').checked;
+    const excessAmt     = excessEnabled ? (parseFloat(v('excessAmt')) || 0) : 0;
+
+    const NAVY_HEX  = '0D2137';
+    const TEAL_HEX  = '1A6B8A';
+    const SECBG_HEX = 'E4ECF1';
+    const SUBT_HEX  = 'CCE5EF';
+
+    const cell = (text, opts = {}) => new TableCell({
+      children: [new Paragraph({
+        children: [new TextRun({
+          text: String(text || ''),
+          bold:  opts.bold  || false,
+          color: opts.color || '1A2533',
+          size:  opts.size  || 20,
+        })],
+        alignment: opts.align || AlignmentType.LEFT,
+      })],
+      shading: opts.bg ? { type: ShadingType.SOLID, color: opts.bg } : undefined,
+      borders: {
+        top:    { style: BorderStyle.SINGLE, size: 1, color: 'C5CED8' },
+        bottom: { style: BorderStyle.SINGLE, size: 1, color: 'C5CED8' },
+        left:   { style: BorderStyle.SINGLE, size: 1, color: 'C5CED8' },
+        right:  { style: BorderStyle.SINGLE, size: 1, color: 'C5CED8' },
+      },
+      margins: { top: 60, bottom: 60, left: 80, right: 80 },
+      columnSpan: opts.span || 1,
+    });
+
+    const colWidths = [600, 4600, 1200, 1200, 1200]; // tenths of a percent * 50 = twips approx
+
+    // Header rows
+    const tableRows = [];
+
+    // Col header row
+    tableRows.push(new TableRow({ children: [
+      cell('Item',       { bold:true, color:'FFFFFF', bg: NAVY_HEX, align: AlignmentType.CENTER }),
+      cell('Description',{ bold:true, color:'FFFFFF', bg: NAVY_HEX }),
+      cell('QTY/Labour', { bold:true, color:'FFFFFF', bg: NAVY_HEX, align: AlignmentType.RIGHT }),
+      cell('Unit Price', { bold:true, color:'FFFFFF', bg: NAVY_HEX, align: AlignmentType.RIGHT }),
+      cell('Total',      { bold:true, color:'FFFFFF', bg: NAVY_HEX, align: AlignmentType.RIGHT }),
+    ]}));
+
+    let grandEx = 0;
+
+    SECTIONS.forEach(sec => {
+      // Section name row
+      tableRows.push(new TableRow({ children: [
+        cell(sec.label, { bold:true, color: NAVY_HEX, bg: SECBG_HEX, span: 5, size: 22 }),
+      ]}));
+
+      let secTotal = 0, rowNum = 0;
+      document.querySelectorAll('#rows-' + sec.id + ' .item-row').forEach(row => {
+        const inp  = row.querySelectorAll('input');
+        const taEl = row.querySelector('textarea');
+        const desc  = taEl ? taEl.value : '';
+        const qty   = parseFloat(inp[0].value) || 0;
+        const price = parseFloat(inp[1].value) || 0;
+        if (!desc && !qty && !price) return;
+        rowNum++;
+        const rowTotal = qty * price;
+        secTotal += rowTotal;
+        tableRows.push(new TableRow({ children: [
+          cell(String(rowNum), { align: AlignmentType.CENTER, color:'8A8EA0' }),
+          cell(desc),
+          cell(qty   ? String(qty)            : '', { align: AlignmentType.RIGHT }),
+          cell(price ? fmtAUD(price)          : '', { align: AlignmentType.RIGHT }),
+          cell(rowTotal > 0 ? fmtAUD(rowTotal): '', { align: AlignmentType.RIGHT, bold: true }),
+        ]}));
+      });
+
+      grandEx += secTotal;
+
+      // Subtotal row
+      tableRows.push(new TableRow({ children: [
+        cell(sec.subtotalLabel.toUpperCase(), { bold:true, color:'163352', bg: SUBT_HEX, span:4, align: AlignmentType.RIGHT }),
+        cell(fmtAUD(secTotal), { bold:true, color: NAVY_HEX, bg: SUBT_HEX, align: AlignmentType.RIGHT }),
+      ]}));
+    });
+
+    // Totals
+    const gstAmt  = gstEnabled ? grandEx * (gstRate / 100) : 0;
+    const balance = Math.max(0, grandEx + gstAmt - excessAmt);
+
+    tableRows.push(new TableRow({ children: [
+      cell('Subtotal', { span:4, align: AlignmentType.RIGHT, color:'6B7A8D' }),
+      cell(fmtAUD(grandEx), { align: AlignmentType.RIGHT, bold:true }),
+    ]}));
+    if (gstEnabled) {
+      tableRows.push(new TableRow({ children: [
+        cell('GST (' + gstRate + '%)', { span:4, align: AlignmentType.RIGHT, color:'6B7A8D' }),
+        cell(fmtAUD(gstAmt), { align: AlignmentType.RIGHT, bold:true }),
+      ]}));
+    }
+    if (excessEnabled && excessAmt > 0) {
+      tableRows.push(new TableRow({ children: [
+        cell('Less Excess', { span:4, align: AlignmentType.RIGHT, color:'B91C1C' }),
+        cell('-' + fmtAUD(excessAmt), { align: AlignmentType.RIGHT, bold:true, color:'B91C1C' }),
+      ]}));
+    }
+    tableRows.push(new TableRow({ children: [
+      cell('BALANCE DUE', { span:4, align: AlignmentType.RIGHT, bold:true, color:'FFFFFF', bg: NAVY_HEX, size:26 }),
+      cell(fmtAUD(balance), { align: AlignmentType.RIGHT, bold:true, color:'FFFFFF', bg: NAVY_HEX, size:26 }),
+    ]}));
+
+    const table = new Table({
+      rows: tableRows,
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      layout: TableLayoutType.FIXED,
+    });
+
+    const para = (text, opts = {}) => new Paragraph({
+      children: [new TextRun({ text, bold: opts.bold, size: opts.size || 20, color: opts.color || '1A2533' })],
+      heading: opts.heading,
+      alignment: opts.align || AlignmentType.LEFT,
+      spacing: { after: opts.after || 80 },
+    });
+
+    const issuedParts = [v('issuedName'), v('issuedAddr'), v('issuedCity'), v('issuedEmail')].filter(Boolean);
+    const vehicleParts = [
+      v('vehModel')     ? 'Make/Model: ' + v('vehModel')        : '',
+      v('vehVin')       ? 'VIN: ' + v('vehVin')                 : '',
+      v('vehMileage')   ? 'Odometer: ' + v('vehMileage')        : '',
+      v('accidentDate') ? 'Date of Accident: ' + v('accidentDate') : '',
+      v('vehReg')       ? 'Registration: ' + v('vehReg')        : '',
+      v('vehFleet')     ? 'Fleet #: ' + v('vehFleet')           : '',
+      v('jobRef')       ? 'Reference No.: ' + v('jobRef')       : '',
+    ].filter(Boolean);
+
+    const doc = new Document({ sections: [{ properties: {}, children: [
+      para(v('companyName') || 'MOONEE VALLEY BUS LINES', { bold:true, size:40, color: NAVY_HEX }),
+      para('WORKSHOP ' + (currentDocTitle || 'QUOTE'), { bold:true, size:28, color: TEAL_HEX }),
+      para(''),
+      para('Quote #: ' + (v('quoteRef')||'—') + '     Date: ' + (v('quoteDate')||'—'), { size:18, color:'6B7A8D' }),
+      para(''),
+      para('ISSUED TO', { bold:true, size:16, color: TEAL_HEX, after:40 }),
+      ...issuedParts.map(l => para(l, { size:20 })),
+      para(''),
+      para('VEHICLE DETAILS', { bold:true, size:16, color: TEAL_HEX, after:40 }),
+      ...vehicleParts.map(l => para(l, { size:20 })),
+      para(''),
+      table,
+      para(''),
+      ...(v('quoteNotes') ? [
+        para('NOTES & TERMS', { bold:true, size:16, color: TEAL_HEX, after:40 }),
+        para(v('quoteNotes'), { size:18, color:'6B7A8D' }),
+        para(''),
+      ] : []),
+      para([v('footerLine1'), v('footerLine2'), v('footerLine3'), v('footerLine3b'), v('footerLine4')].filter(Boolean).join('  |  '), { size:16, color:'6B7A8D', align: AlignmentType.CENTER }),
+    ]}]});
+
+    Packer.toBlob(doc).then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (v('quoteRef')||'quote') + '-' + (v('issuedName')||'quote').replace(/\s+/g,'-') + '.docx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('Word doc saved', 'ok');
+    });
+  } catch(err) {
+    console.error('Word export error:', err);
+    toast('Word export failed: ' + err.message, 'err');
+  }
+}
+
+// ── Excel Export (SheetJS) ────────────────────────────────────────
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const rows = [];
+
+  // Header info
+  rows.push([v('companyName')||'MOONEE VALLEY BUS LINES', '', '', '']);
+  rows.push(['WORKSHOP QUOTE', '', '', '']);
+  rows.push([]);
+  rows.push(['Quote #:', v('quoteRef'), 'Date:', v('quoteDate')]);
+  rows.push(['Issued To:', v('issuedName'), '', '']);
+  rows.push(['', v('issuedAddr') + (v('issuedCity') ? ', ' + v('issuedCity') : ''), '', '']);
+  if (v('issuedEmail')) rows.push(['', v('issuedEmail'), '', '']);
+  rows.push([]);
+  rows.push(['Vehicle Details:', '', '', '']);
+  if (v('vehModel'))     rows.push(['Make/Model:', v('vehModel'), '', '']);
+  if (v('vehVin'))       rows.push(['VIN:', v('vehVin'), '', '']);
+  if (v('vehMileage'))   rows.push(['Odometer:', v('vehMileage'), '', '']);
+  if (v('accidentDate')) rows.push(['Date of Accident:', v('accidentDate'), '', '']);
+  if (v('vehReg'))       rows.push(['Registration:', v('vehReg'), '', '']);
+  if (v('vehFleet'))     rows.push(['Fleet #:', v('vehFleet'), '', '']);
+  if (v('jobRef'))       rows.push(['Reference No.:', v('jobRef'), '', '']);
+  rows.push([]);
+
+  // Column headers
+  rows.push(['Item', 'Description', 'QTY / Labour Hrs', 'Unit Price', 'Total']);
+
+  let grandEx = 0;
+  SECTIONS.forEach(sec => {
+    rows.push([sec.label, '', '', '']); // section header
+    let secTotal = 0, rowNum = 0;
+    document.querySelectorAll('#rows-' + sec.id + ' .item-row').forEach(row => {
+      const inp = row.querySelectorAll('input');
+      const taEl = row.querySelector('textarea');
+      const desc = taEl ? taEl.value : ''; const qty = parseFloat(inp[0].value)||0, price = parseFloat(inp[1].value)||0;
+      if (!desc && !qty && !price) return;
+      rowNum++;
+      secTotal += qty * price;
+      rows.push([rowNum, desc, qty||'', price||'', (qty && price) ? qty*price : '']);
+    });
+    grandEx += secTotal;
+    rows.push(['', sec.subtotalLabel, '', secTotal]);
+    rows.push([]);
+  });
+
+  const gstEnabled    = document.getElementById('gstEnabled').checked;
+  const gstRate       = parseFloat(v('gstRate')) || 0;
+  const gstAmt        = gstEnabled ? grandEx * (gstRate/100) : 0;
+  const excessEnabled = document.getElementById('excessEnabled').checked;
+  const excessAmt     = excessEnabled ? (parseFloat(v('excessAmt'))||0) : 0;
+  const balance       = Math.max(0, grandEx + gstAmt - excessAmt);
+
+  rows.push(['', 'Subtotal', '', grandEx]);
+  if (gstEnabled) rows.push(['', 'GST (' + gstRate + '%)', '', gstAmt]);
+  if (excessEnabled && excessAmt > 0) rows.push(['', 'Less Excess', '', -excessAmt]);
+  rows.push(['', 'BALANCE DUE', '', balance]);
+
+  if (v('quoteNotes')) {
+    rows.push([]);
+    rows.push(['Notes & Terms:', v('quoteNotes'), '', '']);
+  }
+
+  rows.push([]);
+  rows.push([v('footerLine1'), v('footerLine2'), v('footerLine3'), v('footerLine4')]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  ws['!cols'] = [{ wch: 8 }, { wch: 44 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Quote');
+  const ref = v('quoteRef') || 'quote';
+  const client = (v('issuedName') || '').replace(/\s+/g, '-') || 'quote';
+  XLSX.writeFile(wb, `${ref}-${client}.xlsx`);
+  toast('Excel file saved', 'ok');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => { el.className = 'toast'; }, 2500);
+}
+
+// ── SharePoint ────────────────────────────────────────────────────────────────
+const SP_CLIENT_KEY='mvbl_sp_client', SP_TENANT_KEY='mvbl_sp_tenant';
+const SP_TOKEN_KEY='mvbl_sp_token', SP_TOKEN_EXP='mvbl_sp_token_exp', SP_USER_KEY='mvbl_sp_user';
+const SP_LIBRARY='Workshop System Files';
+const SP_REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'auth-redirect.html';
+const SP_SCOPES = 'https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Files.ReadWrite.All offline_access openid profile';
+
+function spB64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function spPkce(){const v=spB64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return{verifier:v,challenge:spB64url(h)};}
+function spGetToken(){const t=localStorage.getItem(SP_TOKEN_KEY);const e=parseInt(localStorage.getItem(SP_TOKEN_EXP)||'0');return(t&&Date.now()<e)?t:null;}
+
+function submitToSharePoint(){
+  const c=localStorage.getItem(SP_CLIENT_KEY)||'', t=localStorage.getItem(SP_TENANT_KEY)||'';
+  document.getElementById('spClientId').value=c; document.getElementById('spTenantId').value=t;
+  document.getElementById('spProgress').style.display='none';
+  document.getElementById('spProgressBar').style.width='0%'; document.getElementById('spProgressBar').style.background='#0078d4';
+  document.getElementById('spModal').style.display='flex';
+  if(!c||!t){spShowSetup();} else {spHideSetup(); if(spGetToken())spShowSignedIn(localStorage.getItem(SP_USER_KEY)||''); else spShowSignIn();}
+}
+function spCloseModal(){document.getElementById('spModal').style.display='none';}
+function spShowSetup(){document.getElementById('spSetupSection').style.display='block';document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='none';}
+function spHideSetup(){document.getElementById('spSetupSection').style.display='none';}
+function spShowSignIn(){document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='flex';document.getElementById('spSubmitBtn').style.display='none';}
+function spShowSignedIn(user){document.getElementById('spSignedInUser').textContent=user;document.getElementById('spSignedInSection').style.display='block';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='flex';}
+function spSaveConfig(){const c=document.getElementById('spClientId').value.trim(),t=document.getElementById('spTenantId').value.trim();if(!c||!t){alert('Enter both IDs');return;}localStorage.setItem(SP_CLIENT_KEY,c);localStorage.setItem(SP_TENANT_KEY,t);spHideSetup();spShowSignIn();}
+function spSignOut(){[SP_TOKEN_KEY,SP_TOKEN_EXP,SP_USER_KEY,'sp_refresh_token'].forEach(k=>localStorage.removeItem(k));spShowSignIn();}
+async function spSignIn(){
+  const clientId=localStorage.getItem(SP_CLIENT_KEY),tenantId=localStorage.getItem(SP_TENANT_KEY);
+  if(!clientId||!tenantId){spShowSetup();return;}
+  const{verifier,challenge}=await spPkce();
+  const state=spB64url(crypto.getRandomValues(new Uint8Array(16)));
+  sessionStorage.setItem('sp_pkce_verifier',verifier);sessionStorage.setItem('sp_auth_state',state);
+  sessionStorage.setItem('sp_return_url',window.location.href);
+  const u=new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`);
+  u.searchParams.set('client_id',clientId);u.searchParams.set('response_type','code');
+  u.searchParams.set('redirect_uri',SP_REDIRECT_URI);u.searchParams.set('scope',SP_SCOPES);
+  u.searchParams.set('state',state);u.searchParams.set('code_challenge',challenge);
+  u.searchParams.set('code_challenge_method','S256');u.searchParams.set('response_mode','query');
+  u.searchParams.set('prompt','select_account');
+  window.location.href=u.toString();
+}
+async function spGraphCall(method,path,body,isBinary){
+  const token=spGetToken();if(!token)throw new Error('Not signed in');
+  const url='https://graph.microsoft.com/v1.0'+path;
+  const opts={method,headers:{'Authorization':'Bearer '+token,'Content-Type':isBinary?'application/octet-stream':'application/json'}};
+  if(body!==undefined)opts.body=isBinary?body:JSON.stringify(body);
+  const resp=await fetch(url,opts);
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error&&err.error.message)||'Graph error '+resp.status);}
+  const ct=resp.headers.get('content-type')||'';
+  if(resp.status===204||!ct.includes('application/json'))return{};
+  return resp.json();
+}
+function spB64ToBuffer(b64){const bin=atob(b64);const buf=new ArrayBuffer(bin.length);const arr=new Uint8Array(buf);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return buf;}
+function spSetProgress(pct,msg,detail){document.getElementById('spProgressBar').style.width=pct+'%';document.getElementById('spProgressMsg').textContent=msg;if(detail!==undefined)document.getElementById('spProgressDetail').textContent=detail;}
+
+async function spDoSubmit(){
+  if(!spGetToken()){spSignIn();return;}
+  document.getElementById('spProgress').style.display='block';
+  document.getElementById('spSubmitBtn').disabled=true;
+  try{
+    spSetProgress(10,'Generating PDF...','');
+    const pdfB64 = await exportPDF();
+    const pdfBuffer = spB64ToBuffer(pdfB64);
+    spSetProgress(25,'Connecting to SharePoint...','');
+    const siteInfo = await spGraphCall('GET','/sites/mvbus.sharepoint.com:/sites/Workshop-MooneeValleyBusLines:');
+    const siteId = siteInfo.id;
+    const drivesInfo = await spGraphCall('GET',`/sites/${siteId}/drives`);
+    const drive = drivesInfo.value.find(d=>d.name===SP_LIBRARY||(d.webUrl&&d.webUrl.toLowerCase().includes(SP_LIBRARY.toLowerCase().replace(/ /g,'%20'))));
+    if(!drive) throw new Error(`Library "${SP_LIBRARY}" not found`);
+    const driveId = drive.id;
+    // Folder: YYYY-MM-DD_REGO_FLEET
+    const _date = (document.getElementById('accidentDate').value||'').replace(/\//g,'-').replace(/\s/g,'');
+    const _rego = document.getElementById('vehReg').value||'';
+    const _fleet = document.getElementById('vehFleet').value||'';
+    const _safe = s=>(s||'').replace(/[^a-zA-Z0-9]/g,'').trim();
+    const folderName = [_date,_safe(_rego),_safe(_fleet)].filter(Boolean).join('_').substring(0,100) || 'Accident-'+new Date().toISOString().split('T')[0];
+    const fileName = folderName+'.pdf';
+    spSetProgress(45,'Creating folder...','/Accident Quotes/'+folderName);
+    try{await spGraphCall('POST',`/drives/${driveId}/root/children`,{name:'Accident Quotes',folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    try{await spGraphCall('POST',`/drives/${driveId}/root:/Accident Quotes:/children`,{name:folderName,folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    spSetProgress(70,'Uploading PDF...',fileName);
+    await spGraphCall('PUT',`/drives/${driveId}/root:/Accident Quotes/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}:/content`,pdfBuffer,true);
+    spSetProgress(100,'Submitted successfully!','Saved to Accident Quotes/'+folderName);
+    document.getElementById('spProgressBar').style.background='#16a34a';
+    setTimeout(()=>{spCloseModal();document.getElementById('spSubmitBtn').disabled=false;},1800);
+  }catch(err){
+    console.error(err);
+    document.getElementById('spSubmitBtn').disabled=false;
+    document.getElementById('spProgressMsg').textContent='Error: '+err.message;
+    document.getElementById('spProgressBar').style.background='#c0292b';
+    document.getElementById('spProgressBar').style.width='100%';
+  }
+}
+
+// Check if returning from Microsoft sign-in
+if(sessionStorage.getItem('sp_just_signed_in')==='1'){
+  sessionStorage.removeItem('sp_just_signed_in');
+  setTimeout(()=>{submitToSharePoint();},400);
+}
+
+</script>
+
+<!-- SharePoint Modal -->
+<div id="spModal" style="display:none;position:fixed;inset:0;background:rgba(13,33,55,0.85);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#1a2c42;padding:28px;width:400px;max-width:95vw;border-top:3px solid #0078d4;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#0078d4;margin-bottom:6px;">Submit to SharePoint</div>
+    <div id="spModalMsg" style="font-size:12px;color:#7aadca;margin-bottom:18px;line-height:1.6;">Uploads PDF to Workshop System Files on SharePoint.</div>
+    <div id="spSetupSection" style="display:none;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#1a6b8a;margin-bottom:10px;font-weight:700;">One-time Setup</div>
+      <div style="margin-bottom:10px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Client ID</div><input id="spClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <div style="margin-bottom:14px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Tenant ID</div><input id="spTenantId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <button onclick="spSaveConfig()" style="width:100%;background:#0078d4;color:#fff;border:none;padding:9px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">Save Settings</button>
+    </div>
+    <div id="spSignedInSection" style="display:none;margin-bottom:14px;">
+      <div style="background:#0d2a1a;border:1px solid #166534;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="color:#22c55e;font-size:14px;">&#10003;</span>
+        <div><div style="font-size:11px;font-weight:600;color:#22c55e;">Signed in to Microsoft</div><div style="font-size:10px;color:#4a7a5a;" id="spSignedInUser"></div></div>
+        <button onclick="spSignOut()" style="margin-left:auto;background:transparent;border:1px solid #166534;color:#4a7a5a;font-size:10px;padding:3px 8px;cursor:pointer;">Sign out</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="spSignInBtn" onclick="spSignIn()" style="flex:1;background:#0078d4;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#128272; Sign in with Microsoft</button>
+      <button id="spSubmitBtn" onclick="spDoSubmit()" style="flex:1;background:#0d7c4e;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#9729; Submit to SharePoint</button>
+      <button onclick="spCloseModal()" style="background:rgba(255,255,255,0.08);color:#6b7a8d;border:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;">Cancel</button>
+    </div>
+    <div id="spProgress" style="display:none;">
+      <div style="font-size:11px;color:#7aadca;margin-bottom:6px;font-weight:600;" id="spProgressMsg">Preparing...</div>
+      <div style="background:#0d2137;height:5px;border-radius:2px;overflow:hidden;margin-bottom:8px;"><div id="spProgressBar" style="height:100%;background:#0078d4;width:0%;transition:width 0.4s;"></div></div>
+      <div id="spProgressDetail" style="font-size:10px;color:#4a6070;"></div>
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+      <button onclick="spShowSetup()" style="background:transparent;border:none;color:#344d5e;font-size:10px;cursor:pointer;text-decoration:underline;">&#9881; Change settings</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
