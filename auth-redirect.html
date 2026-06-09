@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signing in... — MVBL Workshop</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #0d2137; min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #fff; }
+.card { background: #132c44; border-top: 3px solid #0078d4; padding: 32px 40px; text-align: center; max-width: 400px; width: 90vw; }
+.spinner { width: 36px; height: 36px; border: 3px solid rgba(0,120,212,0.2); border-top-color: #0078d4; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+h2 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+p  { font-size: 13px; color: #4a7a94; }
+.err { color: #f87171; font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spinner" id="spinner"></div>
+  <h2 id="msg">Completing sign-in...</h2>
+  <p id="sub">Please wait, you will be redirected automatically.</p>
+  <p class="err" id="err" style="display:none;"></p>
+</div>
+<script>
+// This page handles the Microsoft OAuth redirect for all MVBL tools.
+// It exchanges the auth code for a token, stores it, then redirects
+// back to the page that initiated the sign-in.
+
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  const error = params.get('error');
+  const errorDesc = params.get('error_description');
+
+  function showError(msg) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('msg').textContent = 'Sign-in failed';
+    document.getElementById('sub').textContent = '';
+    const e = document.getElementById('err');
+    e.style.display = 'block';
+    e.textContent = msg;
+    // Still redirect back after 4s so user isn't stuck
+    setTimeout(() => {
+      const ret = sessionStorage.getItem('sp_return_url') || './';
+      window.location.href = ret;
+    }, 4000);
+  }
+
+  if (error) { showError(error + ': ' + (errorDesc || '')); return; }
+  if (!code)  { showError('No auth code received.'); return; }
+
+  // Retrieve saved state
+  const savedState = sessionStorage.getItem('sp_auth_state');
+  if (state !== savedState) { showError('State mismatch — possible CSRF. Please try again.'); return; }
+
+  const verifier = sessionStorage.getItem('sp_pkce_verifier');
+  const clientId = localStorage.getItem('mvbl_sp_client');
+  const tenantId = localStorage.getItem('mvbl_sp_tenant');
+  const returnUrl = sessionStorage.getItem('sp_return_url') || './';
+
+  if (!verifier || !clientId || !tenantId) {
+    showError('Missing credentials. Please go back and set up SharePoint again.');
+    return;
+  }
+
+  // The redirect_uri used in the token exchange MUST exactly match what was
+  // used in the original auth request — which is this page's URL.
+  const redirectUri = window.location.origin + window.location.pathname;
+
+  try {
+    document.getElementById('sub').textContent = 'Exchanging token with Microsoft...';
+
+    const resp = await fetch(
+      'https://login.microsoftonline.com/' + tenantId + '/oauth2/v2.0/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type:    'authorization_code',
+          client_id:     clientId,
+          code:          code,
+          redirect_uri:  redirectUri,
+          code_verifier: verifier,
+          scope:         'https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Files.ReadWrite.All offline_access openid profile',
+        }),
+      }
+    );
+
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error_description || data.error);
+
+    // Store token
+    const exp = Date.now() + (data.expires_in - 60) * 1000;
+    localStorage.setItem('mvbl_sp_token',     data.access_token);
+    localStorage.setItem('mvbl_sp_token_exp', exp.toString());
+    if (data.refresh_token) localStorage.setItem('sp_refresh_token', data.refresh_token);
+
+    // Decode user from id_token
+    if (data.id_token) {
+      try {
+        const payload = JSON.parse(atob(data.id_token.split('.')[1]));
+        const user = payload.preferred_username || payload.upn || payload.email || 'Signed in';
+        localStorage.setItem('mvbl_sp_user', user);
+      } catch(e) {}
+    }
+
+    // Clean up session storage
+    sessionStorage.removeItem('sp_auth_state');
+    sessionStorage.removeItem('sp_pkce_verifier');
+    sessionStorage.removeItem('sp_return_url');
+
+    // Mark that we just signed in (the return page checks this)
+    sessionStorage.setItem('sp_just_signed_in', '1');
+
+    document.getElementById('msg').textContent = 'Signed in! Redirecting...';
+    document.getElementById('sub').textContent = 'Taking you back to the tool.';
+
+    // Redirect back to the tool that initiated sign-in
+    setTimeout(() => { window.location.href = returnUrl; }, 800);
+
+  } catch(err) {
+    showError('Token exchange failed: ' + err.message);
+  }
+})();
+</script>
+</body>
+</html>
