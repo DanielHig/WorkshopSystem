@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice System — Moonee Valley Bus Lines</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<style>
+:root {
+  --navy:    #0d2137; --navy2: #163352; --navy3: #132c44;
+  --teal:    #1a6b8a; --teal2: #1e7da0; --teal-lt: #d0e8f0;
+  --rule:    #c5ced8; --bg: #eef1f4; --paper: #ffffff;
+  --light:   #f0f4f7; --mid: #dde3e9; --muted: #6b7a8d; --ink: #1a2533;
+  --green:   #1a6b4a; --red: #b91c1c; --amber: #b06000;
+  --section-bg: #e4ecf1; --section-stripe: #ccdde6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Barlow', sans-serif; background: var(--bg); min-height: 100vh; padding: 16px; display: flex; flex-direction: column; align-items: center; }
+
+/* ── Toolbar ── */
+.toolbar { width: 100%; max-width: 960px; display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; background: var(--navy); padding: 10px 14px; border-radius: 2px; }
+.toolbar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #aec8d8; flex: 1; min-width: 100px; }
+.toolbar-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.15); margin: 0 3px; }
+.btn { font-family: 'Barlow', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 11px; border: none; cursor: pointer; border-radius: 2px; transition: all 0.12s; white-space: nowrap; }
+.btn-ghost  { background: rgba(255,255,255,0.1); color: #cde; border: 1px solid rgba(255,255,255,0.2); } .btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-save   { background: #1a5c8a; color: #fff; } .btn-save:hover { background: #13456b; }
+.btn-pdf    { background: #0d7c4e; color: #fff; } .btn-pdf:hover  { background: #095c39; }
+.btn-word   { background: #2b5fa6; color: #fff; } .btn-word:hover { background: #1e4278; }
+.btn-excel  { background: #1e7145; color: #fff; } .btn-excel:hover{ background: #155231; }
+.btn-dup    { background: #1a5c4a; color: #fff; } .btn-dup:hover  { background: #0f3d30; }
+.btn-sp     { background: #0078d4; color: #fff; } .btn-sp:hover   { background: #005a9e; }
+.btn-new    { background: rgba(255,255,255,0.12); color: #cde; border: 1px solid rgba(255,255,255,0.25); } .btn-new:hover { background: rgba(255,255,255,0.2); }
+#importInput { display: none; }
+
+/* ── Saved panel ── */
+.saved-panel { width: 100%; max-width: 960px; background: var(--navy2); color: #fff; padding: 14px 18px; margin-bottom: 12px; display: none; border-radius: 2px; }
+.saved-panel.open { display: block; }
+.saved-panel h2 { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #7aadca; margin-bottom: 10px; }
+.saved-list { display: flex; flex-direction: column; gap: 5px; }
+.saved-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.07); padding: 8px 12px; cursor: pointer; border-radius: 2px; }
+.saved-item:hover { background: rgba(255,255,255,0.13); }
+.saved-item-info { flex: 1; }
+.saved-item-ref  { font-weight: 700; font-size: 13px; }
+.saved-item-meta { font-size: 11px; color: #8aadbe; margin-top: 1px; }
+.status-pill { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; }
+.status-pill.unpaid  { background: rgba(185,28,28,0.2); color: #f87171; }
+.status-pill.partial { background: rgba(176,96,0,0.2); color: #fbbf24; }
+.status-pill.paid    { background: rgba(26,107,74,0.25); color: #4ade80; }
+.saved-item-copy { font-size: 10px; color: #7acdaa; cursor: pointer; padding: 3px 8px; background: rgba(26,107,74,0.15); border: none; font-weight: 600; text-transform: uppercase; border-radius: 2px; }
+.saved-item-copy:hover { background: rgba(26,107,74,0.3); }
+.saved-item-del  { font-size: 10px; color: #f87171; cursor: pointer; padding: 3px 8px; background: rgba(255,0,0,0.1); border: none; font-weight: 600; text-transform: uppercase; border-radius: 2px; }
+.saved-item-del:hover { background: rgba(255,0,0,0.25); }
+.no-saved { color: #6a8a9a; font-size: 12px; font-style: italic; }
+
+/* ── Doc ── */
+.invoice { width: 100%; max-width: 960px; background: var(--paper); box-shadow: 0 2px 24px rgba(13,33,55,0.18); }
+
+/* ── Header ── */
+.doc-header { background: var(--navy); padding: 0; display: grid; grid-template-columns: 1fr auto; }
+.doc-header-left { padding: 22px 28px 18px; border-right: 1px solid rgba(255,255,255,0.08); }
+.doc-header-right { padding: 22px 28px 18px; text-align: right; min-width: 260px; }
+
+.company-name-input { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: transparent; border: none; width: 100%; padding: 0; line-height: 1.1; }
+.company-name-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+
+.hdr-input { display: block; font-family: 'Barlow', sans-serif; font-size: 11.5px; color: #a8c4d4; background: transparent; border: none; width: 100%; padding: 1px 0; line-height: 1.7; }
+.hdr-input:focus { outline: none; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25); }
+.hdr-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.doc-type-selector { display: flex; gap: 4px; margin-bottom: 10px; justify-content: flex-end; }
+.doc-type-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #7aadca; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+.doc-type-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.doc-type-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+.doc-title { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 800; color: #fff; line-height: 1; margin-bottom: 14px; letter-spacing: 0.04em; }
+.meta-row { display: flex; justify-content: flex-end; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.meta-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #567a8d; white-space: nowrap; }
+.meta-input { font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600; color: #d4e8f4; background: transparent; border: none; text-align: right; width: 155px; padding: 0; }
+.meta-input:focus { outline: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+.meta-input::placeholder { color: rgba(255,255,255,0.18); }
+
+.teal-stripe { height: 3px; background: linear-gradient(90deg, var(--teal) 0%, #3aaacf 100%); }
+
+/* ── Payment status bar ── */
+.payment-bar { background: var(--navy3); padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--mid); }
+.payment-bar-label { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); }
+.pay-status-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #7aadca; cursor: pointer; border-radius: 2px; transition: all 0.12s; }
+.pay-status-btn.unpaid.active  { background: rgba(185,28,28,0.3); border-color: #b91c1c; color: #f87171; }
+.pay-status-btn.partial.active { background: rgba(176,96,0,0.3); border-color: #b06000; color: #fbbf24; }
+.pay-status-btn.paid.active    { background: rgba(26,107,74,0.3); border-color: #1a6b4a; color: #4ade80; }
+.pay-status-btn:hover { background: rgba(255,255,255,0.14); }
+.payment-bar-sep { color: rgba(255,255,255,0.15); }
+
+/* ── Info band ── */
+.info-band { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border-bottom: 2px solid var(--navy); }
+.info-col { padding: 12px 20px; border-right: 1px solid var(--mid); }
+.info-col:last-child { border-right: none; }
+.info-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-bottom: 5px; }
+.info-input { display: block; font-family: 'Barlow', sans-serif; font-size: 12px; color: var(--ink); background: transparent; border: none; border-bottom: 1px solid var(--rule); width: 100%; padding: 2px 0; line-height: 1.6; margin-bottom: 1px; }
+.info-input:focus { outline: none; border-bottom-color: var(--teal); }
+.info-input::placeholder { color: #c0c8d0; }
+.info-sub { font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: #a0aab4; margin: 6px 0 2px; }
+
+/* ── Table ── */
+.table-area { padding: 0; }
+.section-block { border-bottom: 1px solid var(--mid); }
+.section-header { display: grid; grid-template-columns: 36px 1fr 110px 100px 100px; background: var(--navy); color: #fff; }
+.section-header-cell { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 10px; color: #fff; text-align: center; }
+.section-header-cell.desc { text-align: left; } .section-header-cell.num { text-align: right; }
+.section-name-row { display: grid; grid-template-columns: 36px 1fr 110px 100px 100px; background: var(--section-bg); border-top: 1px solid var(--section-stripe); border-bottom: 1px solid var(--section-stripe); }
+.section-name-cell { grid-column: 1/-1; font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 700; color: var(--navy2); padding: 6px 10px 6px 46px; background: var(--section-bg); letter-spacing: 0.02em; }
+.item-row { display: grid; grid-template-columns: 36px 1fr 110px 100px 100px; border-bottom: 1px solid var(--light); min-height: 30px; align-items: start; }
+.item-row:hover { background: #f7fafb; }
+.item-cell { padding: 0; display: flex; align-items: flex-start; border-right: 1px solid var(--light); }
+.item-cell:last-child { border-right: none; }
+.item-cell.center { justify-content: center; padding-top: 8px; }
+.item-cell.right  { justify-content: flex-end; }
+.item-cell.right .cell-input { padding-top: 8px; }
+.row-num { font-size: 10px; color: #b0bec8; text-align: center; width: 100%; user-select: none; padding: 0 4px; }
+.cell-input { font-family: 'Barlow', sans-serif; font-size: 12.5px; color: var(--ink); background: transparent; border: none; width: 100%; padding: 6px 10px; min-height: 30px; }
+.cell-input:focus { outline: none; background: #f0f8ff; }
+.cell-input::placeholder { color: #ccd5de; }
+.cell-input.right { text-align: right; }
+.cell-input.desc-ta { resize: none; overflow: hidden; line-height: 1.45; height: 30px; display: block; vertical-align: top; }
+.add-row-btn-row { padding: 2px 8px; background: var(--light); border-bottom: 1px solid var(--mid); }
+.add-row-btn { font-family: 'Barlow', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--teal); background: none; border: none; cursor: pointer; padding: 5px 6px; opacity: 0.75; transition: opacity 0.15s; }
+.add-row-btn:hover { opacity: 1; }
+.subtotal-row { display: grid; grid-template-columns: 36px 1fr 110px 100px 100px; background: var(--section-stripe); border-top: 1.5px solid #a8c4d4; }
+.subtotal-label { grid-column: 1/5; text-align: right; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--navy2); padding: 6px 12px; }
+.subtotal-value { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); text-align: right; padding: 6px 10px; border-left: 1px solid #a8c4d4; }
+
+/* ── Totals ── */
+.totals-area { border-top: 2px solid var(--navy); }
+.total-row { display: grid; grid-template-columns: 1fr 120px; border-bottom: 1px solid var(--mid); }
+.total-label { font-size: 11px; font-weight: 500; color: var(--muted); padding: 7px 14px; text-align: right; letter-spacing: 0.03em; text-transform: uppercase; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.total-val { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; color: var(--navy); text-align: right; padding: 7px 12px; border-left: 1px solid var(--mid); }
+.total-row.grand-row { background: var(--navy); }
+.total-row.grand-row .total-label { font-size: 13px; font-weight: 700; color: #aac8da; letter-spacing: 0.08em; }
+.total-row.grand-row .total-val { font-size: 20px; color: #fff; border-left-color: rgba(255,255,255,0.15); }
+.total-row.paid-row .total-label { color: var(--green); }
+.total-row.paid-row .total-val { color: var(--green); }
+.gst-input { font-family: 'Barlow', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none; border-bottom: 1px solid var(--rule); width: 36px; text-align: center; color: var(--muted); padding: 0; }
+.gst-input:focus { outline: none; border-bottom-color: var(--teal); }
+
+/* ── Toggle ── */
+.toggle-label { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+.toggle-track { display: inline-block; width: 32px; height: 17px; background: #c5ced8; border-radius: 9px; position: relative; transition: background 0.2s; }
+input[type=checkbox]:checked + .toggle-track { background: var(--teal); }
+input[type=checkbox] { display: none; }
+.toggle-thumb { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; background: #fff; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+input[type=checkbox]:checked + .toggle-track .toggle-thumb { left: 17px; }
+
+/* ── Payment & bank details ── */
+.payment-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--mid); }
+.payment-col { padding: 14px 20px; border-right: 1px solid var(--mid); }
+.payment-col:last-child { border-right: none; }
+
+/* ── Notes ── */
+.notes-area { padding: 14px 20px; border-top: 1px solid var(--mid); background: var(--light); }
+.notes-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-bottom: 5px; }
+.notes-textarea { font-family: 'Barlow', sans-serif; font-size: 11.5px; color: var(--muted); background: transparent; border: 1px dashed var(--rule); width: 100%; padding: 8px 10px; min-height: 52px; resize: vertical; line-height: 1.6; }
+.notes-textarea:focus { outline: none; border-color: var(--teal); }
+
+/* ── Footer ── */
+.doc-footer { background: var(--navy); padding: 14px 28px 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.footer-addr { width: 100%; text-align: center; font-size: 10.5px; color: #7aadca; line-height: 1.7; }
+.footer-addr input { display: block; font-family: 'Barlow', sans-serif; font-size: 10.5px; color: #7aadca; background: transparent; border: none; padding: 0; width: 100%; text-align: center; }
+.footer-addr input:focus { outline: none; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.25); }
+
+/* ── Toast ── */
+.toast { position: fixed; bottom: 20px; right: 20px; font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600; padding: 10px 18px; color: #fff; opacity: 0; transform: translateY(8px); transition: all 0.18s; pointer-events: none; z-index: 9999; border-radius: 2px; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok  { background: #0d7c4e; } .toast.err { background: #b91c1c; } .toast.inf { background: #1a5c8a; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: none; padding: 0; }
+  .toolbar, .saved-panel, .payment-bar { display: none !important; }
+  .invoice { box-shadow: none; }
+  .add-row-btn-row { display: none; }
+  input, textarea, select { border: none !important; }
+}
+@page { margin: 10mm; size: A4; }
+
+@media (max-width: 640px) {
+  .info-band, .payment-details { grid-template-columns: 1fr; }
+  .info-col, .payment-col { border-right: none; border-bottom: 1px solid var(--mid); }
+  .doc-header { grid-template-columns: 1fr; }
+  .doc-header-right { min-width: unset; text-align: left; padding-top: 0; }
+  .doc-type-selector { justify-content: flex-start; }
+  .meta-input { text-align: left; }
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="toolbar-title">Invoice System</span>
+  <button class="btn btn-ghost" onclick="toggleSaved()">&#128193; Saved</button>
+  <button class="btn btn-new"   onclick="newInvoice()">+ New</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-ghost" onclick="exportJSON()">&#8595; JSON</button>
+  <button class="btn btn-ghost" onclick="document.getElementById('importInput').click()">&#8593; Import</button>
+  <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-save"  onclick="saveInvoice()">&#128190; Save</button>
+  <button class="btn btn-dup"   onclick="duplicateCurrent()" id="dupBtn" style="display:none;">&#8682; Duplicate</button>
+  <button class="btn btn-sp"    onclick="submitToSharePoint()">&#9729; SharePoint</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-pdf"   onclick="exportPDF()">&#128196; PDF</button>
+  <button class="btn btn-word"  onclick="exportWord()">&#128221; Word</button>
+  <button class="btn btn-excel" onclick="exportExcel()">&#128202; Excel</button>
+</div>
+
+<div class="saved-panel" id="savedPanel">
+  <h2>Saved Invoices</h2>
+  <div class="saved-list" id="savedList"></div>
+</div>
+
+<div class="invoice" id="invoiceDoc">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <input class="company-name-input" id="companyName" type="text" value="MOONEE VALLEY BUS LINES" maxlength="50">
+      <div style="margin-top:12px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#567a8d;margin-bottom:4px;">Bill To</div>
+        <input class="hdr-input" id="clientName"  placeholder="Company / Customer name">
+        <input class="hdr-input" id="clientAddr"  placeholder="Street address">
+        <input class="hdr-input" id="clientCity"  placeholder="City, State Postcode">
+        <input class="hdr-input" id="clientEmail" placeholder="Email address">
+        <input class="hdr-input" id="clientPhone" placeholder="Phone number">
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#567a8d;margin-bottom:4px;">Customer Reference / PO Number</div>
+        <input class="hdr-input" id="poRef" placeholder="Customer PO / reference number">
+      </div>
+    </div>
+    <div class="doc-header-right">
+      <div class="doc-type-selector">
+        <button class="doc-type-btn active" data-prefix="INV" data-title="INVOICE"  data-label="Invoice #"  onclick="setDocType(this)">Invoice</button>
+        <button class="doc-type-btn"        data-prefix="QT"  data-title="QUOTE"    data-label="Quote #"    onclick="setDocType(this)">Quote</button>
+        <button class="doc-type-btn"        data-prefix="RCP" data-title="RECEIPT"  data-label="Receipt #"  onclick="setDocType(this)">Receipt</button>
+        <button class="doc-type-btn"        data-prefix="CR"  data-title="CREDIT NOTE" data-label="Credit #" onclick="setDocType(this)">Credit</button>
+      </div>
+      <div class="doc-title" id="docTitle">INVOICE</div>
+      <div class="meta-row">
+        <span class="meta-label" id="refLabel">Invoice #</span>
+        <input class="meta-input" id="invoiceRef" type="text" placeholder="INV-202506-001">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Date</span>
+        <input class="meta-input" id="invoiceDate" type="text">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Due Date</span>
+        <input class="meta-input" id="dueDate" type="text" placeholder="DD/MM/YYYY">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Registration</span>
+        <input class="meta-input" id="vehReg" type="text" placeholder="AB21 XYZ">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Fleet #</span>
+        <input class="meta-input" id="vehFleet" type="text" placeholder="042">
+      </div>
+    </div>
+  </div>
+
+  <div class="teal-stripe"></div>
+
+  <!-- Payment status bar -->
+  <div class="payment-bar">
+    <span class="payment-bar-label">Payment Status:</span>
+    <button class="pay-status-btn unpaid  active" id="ps-unpaid"  onclick="setPayStatus('unpaid')">Unpaid</button>
+    <button class="pay-status-btn partial"         id="ps-partial" onclick="setPayStatus('partial')">Partial</button>
+    <button class="pay-status-btn paid"             id="ps-paid"    onclick="setPayStatus('paid')">Paid</button>
+    <span class="payment-bar-sep">|</span>
+    <span class="payment-bar-label">Terms:</span>
+    <select id="payTerms" onchange="applyPaymentTerms()" style="font-family:'Barlow',sans-serif;font-size:11px;background:#0d2137;border:1px solid rgba(255,255,255,0.15);color:#aec8d8;padding:3px 8px;cursor:pointer;outline:none;">
+      <option value="0">Due on Receipt</option>
+      <option value="7">Net 7 days</option>
+      <option value="14">Net 14 days</option>
+      <option value="30" selected>Net 30 days</option>
+      <option value="60">Net 60 days</option>
+      <option value="custom">Custom</option>
+    </select>
+  </div>
+
+  <!-- Info band -->
+  <div class="info-band">
+    <div class="info-col">
+      <div class="info-label">Vehicle Details</div>
+      <div class="info-sub">Make / Model</div>
+      <input class="info-input" id="vehModel" placeholder="e.g. Volvo B7RLE">
+      <div class="info-sub">VIN</div>
+      <input class="info-input" id="vehVin" placeholder="Vehicle identification number">
+    </div>
+    <div class="info-col">
+      <div class="info-label">&nbsp;</div>
+      <div class="info-sub">Odometer</div>
+      <input class="info-input" id="vehOdo" placeholder="e.g. 187,540 km">
+      <div class="info-sub">Date of Service</div>
+      <input class="info-input" id="serviceDate" placeholder="DD/MM/YYYY">
+    </div>
+    <div class="info-col">
+      <div class="info-label">Job Reference</div>
+      <div class="info-sub">Job Card No.</div>
+      <input class="info-input" id="jobCardRef" placeholder="JOB-202506-001">
+      <div class="info-sub">Workshop / Mechanic</div>
+      <input class="info-input" id="mechanic" placeholder="Name">
+    </div>
+  </div>
+
+  <!-- Column headers -->
+  <div class="table-area">
+    <div class="section-header">
+      <div class="section-header-cell">Item</div>
+      <div class="section-header-cell desc">Description</div>
+      <div class="section-header-cell num">QTY / Hours</div>
+      <div class="section-header-cell num">Unit Price</div>
+      <div class="section-header-cell num">Total</div>
+    </div>
+    <div id="sectionsContainer"></div>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals-area" id="totalsArea">
+    <div class="total-row">
+      <div class="total-label">Subtotal (ex GST)</div>
+      <div class="total-val" id="grandEx">$0.00</div>
+    </div>
+    <div class="total-row" id="gstRow">
+      <div class="total-label">
+        <label class="toggle-label" title="Toggle GST">
+          <input type="checkbox" id="gstEnabled" checked onchange="recalcAll()">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+        GST&nbsp;(<input class="gst-input" id="gstRate" type="number" value="10" min="0" max="100">%)
+      </div>
+      <div class="total-val" id="grandGST">$0.00</div>
+    </div>
+    <div class="total-row grand-row">
+      <div class="total-label">Total Amount Due</div>
+      <div class="total-val" id="grandTotal">$0.00</div>
+    </div>
+    <div class="total-row paid-row" id="amtPaidRow" style="display:none;">
+      <div class="total-label">
+        <label class="toggle-label">
+          <input type="checkbox" id="paidToggle" onchange="togglePaidAmt()">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+        Amount Paid
+      </div>
+      <div class="total-val" style="padding:4px 12px 4px 0;">
+        <input type="number" id="amtPaid" value="0" min="0" step="0.01" oninput="recalcAll()" style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--green);border:none;border-bottom:1px solid var(--mid);text-align:right;width:100%;outline:none;background:transparent;padding:3px 12px 3px 0;">
+      </div>
+    </div>
+    <div class="total-row grand-row" id="balanceRow" style="display:none;">
+      <div class="total-label">Balance Remaining</div>
+      <div class="total-val" id="grandBalance">$0.00</div>
+    </div>
+  </div>
+
+  <!-- Payment & bank details -->
+  <div class="payment-details">
+    <div class="payment-col">
+      <div class="info-label">Payment Details</div>
+      <div class="info-sub">Bank Name</div>
+      <input class="info-input" id="bankName" placeholder="e.g. Commonwealth Bank" value="Commonwealth Bank">
+      <div class="info-sub">Account Name</div>
+      <input class="info-input" id="bankAccount" placeholder="Account name" value="Moonee Valley Bus Lines Pty Ltd">
+      <div class="info-sub">BSB</div>
+      <input class="info-input" id="bankBSB" placeholder="000-000">
+      <div class="info-sub">Account Number</div>
+      <input class="info-input" id="bankAccNum" placeholder="00000000">
+    </div>
+    <div class="payment-col">
+      <div class="info-label">Notes &amp; Terms</div>
+      <textarea class="notes-textarea" id="invoiceNotes" rows="7" placeholder="Payment terms, warranty, parts warranty, exclusions, or additional information…&#10;&#10;e.g. Payment due within 30 days. Please reference invoice number on payment."></textarea>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <div class="footer-addr">
+      <input type="text" id="footerLine1" value="Moonee Valley Bus Lines Pty. Ltd." style="font-weight:700;color:#aac8da;">
+      <input type="text" id="footerLine2" value="6 Tullamarine Park Road, Tullamarine Victoria 3043  —  PO Box 773 Tullamarine 3043">
+      <input type="text" id="footerLine3" value="Ph: 03 9310 5286   M: 0411 132 359   E: daniel.higginson@mooneevalleybus.com.au">
+      <input type="text" id="footerLine4" value="ABN 41 004 679 378">
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- SP Modal -->
+<div id="spModal" style="display:none;position:fixed;inset:0;background:rgba(13,33,55,0.85);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#1a2c42;padding:32px;width:420px;max-width:95vw;border-top:3px solid #0078d4;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#0078d4;margin-bottom:6px;">Submit to SharePoint</div>
+    <div id="spModalMsg" style="font-size:12px;color:#7aadca;margin-bottom:18px;line-height:1.6;">Saves invoice to SharePoint and uploads PDF.</div>
+    <div id="spSetupSection" style="display:none;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#1a6b8a;margin-bottom:10px;font-weight:700;">One-time setup</div>
+      <div style="margin-bottom:10px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Client ID</div><input id="spClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <div style="margin-bottom:14px;"><div style="font-size:10px;color:#567a8d;margin-bottom:3px;">Tenant ID</div><input id="spTenantId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;font-size:11px;background:#0d2137;border:1px solid #1a3f5c;color:#aac8da;padding:7px 10px;width:100%;outline:none;"></div>
+      <button onclick="saveSpConfig()" style="width:100%;background:#0078d4;color:#fff;border:none;padding:9px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">Save Settings</button>
+    </div>
+    <div id="spSignedInSection" style="display:none;margin-bottom:14px;">
+      <div style="background:#0d2a1a;border:1px solid #166534;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="color:#22c55e;font-size:14px;">&#10003;</span>
+        <div><div style="font-size:11px;font-weight:600;color:#22c55e;">Signed in to Microsoft</div><div style="font-size:10px;color:#4a7a5a;" id="spSignedInUser"></div></div>
+        <button onclick="spSignOut()" style="margin-left:auto;background:transparent;border:1px solid #166534;color:#4a7a5a;font-size:10px;padding:3px 8px;cursor:pointer;">Sign out</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="spSignInBtn" onclick="spSignIn()" style="flex:1;background:#0078d4;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#128272; Sign in with Microsoft</button>
+      <button id="spSubmitBtn" onclick="doSubmitToSharePoint()" style="flex:1;background:#0d7c4e;color:#fff;border:none;padding:10px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:none;">&#9729; Submit</button>
+      <button onclick="closeSpModal()" style="background:rgba(255,255,255,0.08);color:#6b7a8d;border:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;">Cancel</button>
+    </div>
+    <div id="spProgress" style="display:none;">
+      <div style="font-size:11px;color:#7aadca;margin-bottom:6px;font-weight:600;" id="spProgressMsg">Preparing...</div>
+      <div style="background:#0d2137;height:5px;border-radius:2px;overflow:hidden;margin-bottom:8px;"><div id="spProgressBar" style="height:100%;background:#0078d4;width:0%;transition:width 0.5s;"></div></div>
+      <div id="spProgressDetail" style="font-size:10px;color:#4a6a7a;"></div>
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+      <button onclick="showSpSetup()" style="background:transparent;border:none;color:#344d5e;font-size:10px;cursor:pointer;text-decoration:underline;">&#9881; Change settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.onerror = function(msg, src, line) {
+  console.error('JS error:', msg, src, line);
+  return false;
+};
+
+// ── Config ────────────────────────────────────────────────────────
+const STORAGE_KEY = 'mvbl_invoices';
+let currentId = null;
+let currentPrefix = 'INV';
+let currentDocTitle = 'INVOICE';
+let currentRefLabel = 'Invoice #';
+let currentPayStatus = 'unpaid';
+
+const DOC_TYPES = {
+  INV: { title:'INVOICE',     label:'Invoice #'  },
+  QT:  { title:'QUOTE',       label:'Quote #'    },
+  RCP: { title:'RECEIPT',     label:'Receipt #'  },
+  CR:  { title:'CREDIT NOTE', label:'Credit #'   },
+};
+
+const SECTIONS = [
+  { id:'labour',   label:'Labour',                   subtotalLabel:'Labour Total' },
+  { id:'parts',    label:'Parts & Materials',         subtotalLabel:'Parts & Materials Total' },
+  { id:'sublet',   label:'Sublet / External Work',   subtotalLabel:'Sublet Total' },
+  { id:'other',    label:'Other Costs',              subtotalLabel:'Other Costs Total' },
+];
+
+// ── Init ──────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  handleAuthRedirect().catch(e => console.warn('Auth redirect:', e));
+  const today = new Date();
+  document.getElementById('invoiceDate').value = today.toLocaleDateString('en-AU');
+  applyPaymentTerms();
+  document.getElementById('gstRate').addEventListener('input', recalcAll);
+  buildSections();
+  generateRef();
+});
+
+// ── Sections & rows ───────────────────────────────────────────────
+function buildSections(data = {}) {
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const rows = (data[sec.id] && data[sec.id].length) ? data[sec.id] : [emptyRow()];
+    const block = document.createElement('div');
+    block.className = 'section-block'; block.id = 'sec-' + sec.id;
+    const nameRow = document.createElement('div');
+    nameRow.className = 'section-name-row';
+    nameRow.innerHTML = '<div class="section-name-cell">' + sec.label + '</div>';
+    block.appendChild(nameRow);
+    const rowsDiv = document.createElement('div'); rowsDiv.id = 'rows-' + sec.id;
+    block.appendChild(rowsDiv);
+    rows.forEach((r, i) => appendRow(rowsDiv, sec.id, r, i + 1));
+    const addBtn = document.createElement('div'); addBtn.className = 'add-row-btn-row';
+    addBtn.innerHTML = '<button class="add-row-btn" onclick="addRowToSection(\'' + sec.id + '\')">+ Add Line</button>';
+    block.appendChild(addBtn);
+    const sub = document.createElement('div'); sub.className = 'subtotal-row';
+    sub.innerHTML = '<div class="subtotal-label">' + sec.subtotalLabel + '</div><div class="subtotal-value" id="sub-' + sec.id + '">$0.00</div>';
+    block.appendChild(sub);
+    container.appendChild(block);
+  });
+  recalcAll(); renumberAll();
+}
+
+function emptyRow() { return { desc:'', qty:'', price:'' }; }
+
+function appendRow(container, secId, data, num) {
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML =
+    '<div class="item-cell center"><span class="row-num">' + num + '</span></div>' +
+    '<div class="item-cell"><textarea class="cell-input desc-ta" placeholder="Description..." rows="1" oninput="autoGrow(this);recalcSection(\'' + secId + '\')" onkeydown="handleDescKey(event,\'' + secId + '\',this)">' + esc(data.desc || '') + '</textarea></div>' +
+    '<div class="item-cell right"><input class="cell-input right" type="number" min="0" step="0.25" placeholder="0" value="' + esc(data.qty || '') + '" oninput="recalcSection(\'' + secId + '\')" onkeydown="handleNumKey(event,\'' + secId + '\',this)"></div>' +
+    '<div class="item-cell right"><input class="cell-input right" type="number" min="0" step="0.01" placeholder="0.00" value="' + esc(data.price || '') + '" oninput="recalcSection(\'' + secId + '\')" onkeydown="handleNumKey(event,\'' + secId + '\',this)"></div>' +
+    '<div class="item-cell right row-total-cell" style="padding-top:8px;padding-right:10px;font-size:12px;font-weight:600;color:var(--navy2);"></div>';
+  container.appendChild(row);
+  const ta = row.querySelector('textarea');
+  if (ta && data.desc) autoGrow(ta);
+}
+
+function autoGrow(ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+
+function addRowToSection(secId) {
+  const rowsDiv = document.getElementById('rows-' + secId);
+  appendRow(rowsDiv, secId, {}, rowsDiv.querySelectorAll('.item-row').length + 1);
+  rowsDiv.querySelectorAll('.item-row .desc-ta').forEach(ta => {}); // noop — last row auto focuses
+  const rows = rowsDiv.querySelectorAll('.item-row');
+  rows[rows.length-1].querySelector('textarea').focus();
+}
+
+function handleDescKey(e, secId, ta) {
+  if (e.key === 'Enter') { e.preventDefault(); addRowToSection(secId); }
+  if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const q = ta.closest('.item-row').querySelectorAll('input')[0]; if (q) q.focus(); }
+}
+
+function handleNumKey(e, secId, input) {
+  if (e.key !== 'Tab' || e.shiftKey) return;
+  const rowsDiv = document.getElementById('rows-' + secId);
+  const allRows = rowsDiv.querySelectorAll('.item-row');
+  const lastRow = allRows[allRows.length - 1];
+  if (lastRow && lastRow.querySelectorAll('input')[1] === input) {
+    const ta = lastRow.querySelector('textarea'); const inp = lastRow.querySelectorAll('input');
+    if ((ta && ta.value.trim()) || inp[0].value || inp[1].value) { e.preventDefault(); addRowToSection(secId); }
+  }
+}
+
+// ── Recalc ────────────────────────────────────────────────────────
+function recalcSection(secId) {
+  let total = 0;
+  document.querySelectorAll('#rows-' + secId + ' .item-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const qty = parseFloat(inputs[0].value) || 0;
+    const price = parseFloat(inputs[1].value) || 0;
+    const rt = qty * price; total += rt;
+    const tc = row.querySelector('.row-total-cell');
+    if (tc) tc.textContent = (qty || price) ? fmtAUD(rt) : '';
+  });
+  document.getElementById('sub-' + secId).textContent = fmtAUD(total);
+  recalcAll();
+}
+
+function recalcAll() {
+  let subtotal = 0;
+  SECTIONS.forEach(sec => { const el = document.getElementById('sub-' + sec.id); if (el) subtotal += parseFloat(el.textContent.replace(/[^0-9.-]/g,'')) || 0; });
+  const gstEnabled = document.getElementById('gstEnabled').checked;
+  const gstRate = parseFloat(document.getElementById('gstRate').value) || 0;
+  const gst = gstEnabled ? subtotal * (gstRate / 100) : 0;
+  document.getElementById('grandGST').style.opacity = gstEnabled ? '1' : '0.3';
+  document.getElementById('gstRate').disabled = !gstEnabled;
+  const total = subtotal + gst;
+  document.getElementById('grandEx').textContent = fmtAUD(subtotal);
+  document.getElementById('grandGST').textContent = fmtAUD(gst);
+  document.getElementById('grandTotal').textContent = fmtAUD(total);
+  // Paid / balance
+  const paidEnabled = document.getElementById('paidToggle').checked;
+  if (paidEnabled) {
+    const paid = parseFloat(document.getElementById('amtPaid').value) || 0;
+    const balance = Math.max(0, total - paid);
+    document.getElementById('grandBalance').textContent = fmtAUD(balance);
+  }
+}
+
+function togglePaidAmt() {
+  const on = document.getElementById('paidToggle').checked;
+  document.getElementById('amtPaid').disabled = !on;
+  document.getElementById('balanceRow').style.display = on ? '' : 'none';
+  document.getElementById('amtPaidRow').style.display = 'none'; // always show via paid status
+  recalcAll();
+}
+
+function fmtAUD(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+function renumberAll() {
+  SECTIONS.forEach(sec => {
+    document.querySelectorAll('#rows-' + sec.id + ' .item-row').forEach((r, i) => {
+      const span = r.querySelector('.row-num'); if (span) span.textContent = i + 1;
+    });
+  });
+}
+
+function esc(v) { return String(v).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Doc type ──────────────────────────────────────────────────────
+function setDocType(btn) {
+  document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPrefix = btn.dataset.prefix; currentDocTitle = btn.dataset.title; currentRefLabel = btn.dataset.label;
+  document.getElementById('docTitle').textContent = currentDocTitle;
+  document.getElementById('refLabel').textContent = currentRefLabel;
+  if (!currentId) generateRef();
+}
+
+// ── Payment status ────────────────────────────────────────────────
+function setPayStatus(status) {
+  currentPayStatus = status;
+  ['unpaid','partial','paid'].forEach(s => document.getElementById('ps-' + s).classList.remove('active'));
+  document.getElementById('ps-' + status).classList.add(status, 'active');
+  const paidRow = document.getElementById('amtPaidRow');
+  const balRow  = document.getElementById('balanceRow');
+  if (status === 'partial') {
+    paidRow.style.display = '';
+    document.getElementById('paidToggle').checked = true;
+    document.getElementById('amtPaid').disabled = false;
+    balRow.style.display = '';
+  } else if (status === 'paid') {
+    paidRow.style.display = 'none';
+    balRow.style.display = 'none';
+  } else {
+    paidRow.style.display = 'none';
+    balRow.style.display = 'none';
+  }
+  recalcAll();
+}
+
+// ── Payment terms ─────────────────────────────────────────────────
+function applyPaymentTerms() {
+  const val = document.getElementById('payTerms').value;
+  if (val === 'custom') return;
+  const days = parseInt(val);
+  const base = new Date();
+  base.setDate(base.getDate() + days);
+  document.getElementById('dueDate').value = base.toLocaleDateString('en-AU');
+}
+
+// ── Reference ─────────────────────────────────────────────────────
+function generateRef() {
+  const now = new Date();
+  const ym = now.getFullYear().toString() + String(now.getMonth()+1).padStart(2,'0');
+  const all = loadAll();
+  const prefix = currentPrefix;
+  const pattern = new RegExp('^' + prefix + '-' + ym + '-(\\d+)$');
+  let maxSeq = 0;
+  all.forEach(q => { if (!q.invoiceRef) return; const m = q.invoiceRef.match(pattern); if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10)); });
+  document.getElementById('invoiceRef').value = prefix + '-' + ym + '-' + (maxSeq + 1).toString().padStart(3,'0');
+}
+
+// ── Collect / fill ────────────────────────────────────────────────
+function collectData() {
+  const secs = {};
+  SECTIONS.forEach(sec => {
+    secs[sec.id] = [];
+    document.querySelectorAll('#rows-' + sec.id + ' .item-row').forEach(row => {
+      const inp = row.querySelectorAll('input'); const ta = row.querySelector('textarea');
+      secs[sec.id].push({ desc: ta ? ta.value : '', qty: inp[0].value, price: inp[1].value });
+    });
+  });
+  return {
+    id: currentId || Date.now(), savedAt: new Date().toISOString(),
+    docPrefix: currentPrefix, docTitle: currentDocTitle, docRefLabel: currentRefLabel,
+    payStatus: currentPayStatus,
+    companyName: v('companyName'), invoiceRef: v('invoiceRef'), invoiceDate: v('invoiceDate'),
+    dueDate: v('dueDate'), payTerms: document.getElementById('payTerms').value,
+    clientName: v('clientName'), clientAddr: v('clientAddr'), clientCity: v('clientCity'),
+    clientEmail: v('clientEmail'), clientPhone: v('clientPhone'), poRef: v('poRef'),
+    vehReg: v('vehReg'), vehFleet: v('vehFleet'), vehModel: v('vehModel'),
+    vehVin: v('vehVin'), vehOdo: v('vehOdo'), serviceDate: v('serviceDate'),
+    jobCardRef: v('jobCardRef'), mechanic: v('mechanic'),
+    gstRate: v('gstRate'), gstEnabled: document.getElementById('gstEnabled').checked,
+    amtPaid: v('amtPaid'), paidToggle: document.getElementById('paidToggle').checked,
+    bankName: v('bankName'), bankAccount: v('bankAccount'), bankBSB: v('bankBSB'), bankAccNum: v('bankAccNum'),
+    invoiceNotes: v('invoiceNotes'),
+    footerLine1: v('footerLine1'), footerLine2: v('footerLine2'), footerLine3: v('footerLine3'), footerLine4: v('footerLine4'),
+    sections: secs,
+  };
+}
+
+function v(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+
+function fillData(d) {
+  const fields = ['companyName','invoiceRef','invoiceDate','dueDate','clientName','clientAddr','clientCity','clientEmail','clientPhone','poRef',
+    'vehReg','vehFleet','vehModel','vehVin','vehOdo','serviceDate','jobCardRef','mechanic',
+    'gstRate','amtPaid','bankName','bankAccount','bankBSB','bankAccNum','invoiceNotes',
+    'footerLine1','footerLine2','footerLine3','footerLine4'];
+  fields.forEach(f => { const el = document.getElementById(f); if (el && d[f] !== undefined) el.value = d[f]; });
+  if (d.docPrefix) {
+    currentPrefix = d.docPrefix; currentDocTitle = d.docTitle || 'INVOICE'; currentRefLabel = d.docRefLabel || 'Invoice #';
+    document.getElementById('docTitle').textContent = currentDocTitle;
+    document.getElementById('refLabel').textContent = currentRefLabel;
+    document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.toggle('active', b.dataset.prefix === d.docPrefix));
+  }
+  if (d.payStatus) setPayStatus(d.payStatus);
+  if (d.payTerms) document.getElementById('payTerms').value = d.payTerms;
+  if (d.gstEnabled !== undefined) document.getElementById('gstEnabled').checked = d.gstEnabled;
+  if (d.paidToggle !== undefined) document.getElementById('paidToggle').checked = d.paidToggle;
+  buildSections(d.sections || {}); recalcAll();
+}
+
+// ── Save / Load ───────────────────────────────────────────────────
+function loadAll() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+
+function saveInvoice() {
+  const data = collectData(); currentId = data.id;
+  const all = loadAll(); const idx = all.findIndex(q => q.id === data.id);
+  if (idx >= 0) all[idx] = data; else all.push(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  toast('Saved', 'ok'); renderSavedList();
+  document.getElementById('dupBtn').style.display = '';
+}
+
+function loadInvoice(id) {
+  const q = loadAll().find(q => q.id === id); if (!q) return;
+  currentId = q.id; fillData(q);
+  document.getElementById('savedPanel').classList.remove('open');
+  document.getElementById('dupBtn').style.display = '';
+  toast('Loaded', 'ok');
+}
+
+function deleteInvoice(id, e) {
+  e.stopPropagation(); if (!confirm('Delete this invoice?')) return;
+  const all = loadAll().filter(q => q.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  if (currentId === id) newInvoice();
+  renderSavedList(); toast('Deleted', 'err');
+}
+
+function newInvoice() {
+  currentId = null;
+  document.querySelectorAll('.invoice input, .invoice textarea, .invoice select').forEach(el => {
+    if (['gstRate','payTerms'].includes(el.id)) return;
+    if (el.type === 'checkbox') { el.checked = el.id === 'gstEnabled'; return; }
+    el.value = '';
+  });
+  document.getElementById('gstRate').value = 10;
+  const today = new Date();
+  document.getElementById('invoiceDate').value = today.toLocaleDateString('en-AU');
+  // Restore defaults
+  document.getElementById('companyName').value = 'MOONEE VALLEY BUS LINES';
+  document.getElementById('bankName').value     = 'Commonwealth Bank';
+  document.getElementById('bankAccount').value  = 'Moonee Valley Bus Lines Pty Ltd';
+  document.getElementById('footerLine1').value  = 'Moonee Valley Bus Lines Pty. Ltd.';
+  document.getElementById('footerLine2').value  = '6 Tullamarine Park Road, Tullamarine Victoria 3043  —  PO Box 773 Tullamarine 3043';
+  document.getElementById('footerLine3').value  = 'Ph: 03 9310 5286   M: 0411 132 359   E: daniel.higginson@mooneevalleybus.com.au';
+  document.getElementById('footerLine4').value  = 'ABN 41 004 679 378';
+  currentPrefix = 'INV'; currentDocTitle = 'INVOICE'; currentRefLabel = 'Invoice #';
+  document.getElementById('docTitle').textContent = 'INVOICE';
+  document.getElementById('refLabel').textContent = 'Invoice #';
+  document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.toggle('active', b.dataset.prefix === 'INV'));
+  setPayStatus('unpaid');
+  document.getElementById('payTerms').value = '30';
+  applyPaymentTerms();
+  buildSections({}); generateRef();
+  document.getElementById('savedPanel').classList.remove('open');
+  document.getElementById('dupBtn').style.display = 'none';
+}
+
+function duplicateCurrent() {
+  saveInvoice();
+  const source = loadAll().find(q => q.id === currentId);
+  if (!source) { toast('Save first', 'inf'); return; }
+  showDupModal(source);
+}
+
+function duplicateInvoice(sourceId, e) {
+  e.stopPropagation();
+  const source = loadAll().find(q => q.id === sourceId);
+  if (!source) return;
+  showDupModal(source);
+}
+
+function showDupModal(source) {
+  const existing = document.getElementById('dupModal'); if (existing) existing.remove();
+  const ym = new Date().getFullYear().toString() + String(new Date().getMonth()+1).padStart(2,'0');
+  const types = [
+    { prefix:'INV', title:'INVOICE',     label:'Invoice #'  },
+    { prefix:'QT',  title:'QUOTE',       label:'Quote #'    },
+    { prefix:'RCP', title:'RECEIPT',     label:'Receipt #'  },
+    { prefix:'CR',  title:'CREDIT NOTE', label:'Credit #'   },
+  ];
+  const overlay = document.createElement('div');
+  overlay.id = 'dupModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(13,33,55,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;';
+  const btns = types.map(t =>
+    '<button class="dup-pick" data-prefix="' + t.prefix + '" data-title="' + t.title + '" data-label="' + t.label + '" style="font-family:Barlow,sans-serif;font-size:13px;font-weight:600;color:#d4e8f4;background:' + (source.docPrefix===t.prefix?'rgba(26,107,138,0.4)':'rgba(255,255,255,0.06)') + ';border:1px solid ' + (source.docPrefix===t.prefix?'#1a6b8a':'rgba(255,255,255,0.12)') + ';padding:11px 16px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;width:100%;">' +
+    t.title + '<span style="font-size:10px;color:#567a8d;font-family:monospace;">' + t.prefix + '-' + ym + '-NNN</span></button>'
+  ).join('');
+  overlay.innerHTML = '<div style="background:#1a2c42;padding:28px 32px;width:340px;border-top:3px solid #1a6b8a;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#6aadca;margin-bottom:6px;">Duplicate As</div><div style="font-size:11px;color:#567a8d;margin-bottom:18px;">Copying all line items from <b style="color:#aac8da;">' + (source.invoiceRef||'this document') + '</b>. Original unchanged.</div><div style="display:flex;flex-direction:column;gap:8px;">' + btns + '</div><button id="dupCancel" style="margin-top:14px;font-family:Barlow,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#567a8d;padding:7px 14px;cursor:pointer;width:100%;">Cancel</button></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('.dup-pick').forEach(btn => {
+    btn.onclick = () => { overlay.remove(); finishDuplicate(source, { prefix: btn.dataset.prefix, title: btn.dataset.title, label: btn.dataset.label }); };
+  });
+  document.getElementById('dupCancel').onclick = () => overlay.remove();
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+}
+
+function finishDuplicate(source, choice) {
+  const copy = JSON.parse(JSON.stringify(source));
+  copy.id = Date.now(); copy.savedAt = new Date().toISOString();
+  copy.invoiceDate = new Date().toLocaleDateString('en-AU');
+  copy.docPrefix = choice.prefix; copy.docTitle = choice.title; copy.docRefLabel = choice.label;
+  const all = loadAll(); const ym = new Date().getFullYear().toString() + String(new Date().getMonth()+1).padStart(2,'0');
+  const pat = new RegExp('^' + choice.prefix + '-' + ym + '-(\\d+)$');
+  let maxSeq = 0;
+  all.forEach(q => { if (!q.invoiceRef) return; const m = q.invoiceRef.match(pat); if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10)); });
+  copy.invoiceRef = choice.prefix + '-' + ym + '-' + (maxSeq+1).toString().padStart(3,'0');
+  all.push(copy); localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  currentId = copy.id; fillData(copy); document.getElementById('dupBtn').style.display = '';
+  renderSavedList(); document.getElementById('savedPanel').classList.remove('open');
+  toast('Created ' + copy.invoiceRef + ' from ' + source.invoiceRef, 'ok');
+}
+
+// ── Saved panel ───────────────────────────────────────────────────
+function toggleSaved() {
+  const p = document.getElementById('savedPanel'); p.classList.toggle('open');
+  if (p.classList.contains('open')) renderSavedList();
+}
+
+function renderSavedList() {
+  const list = document.getElementById('savedList'); const all = loadAll();
+  if (!all.length) { list.innerHTML = '<div class="no-saved">No saved invoices yet.</div>'; return; }
+  list.innerHTML = '';
+  [...all].reverse().forEach(q => {
+    const div = document.createElement('div'); div.className = 'saved-item'; div.onclick = () => loadInvoice(q.id);
+    const date = q.savedAt ? new Date(q.savedAt).toLocaleDateString('en-AU') : q.invoiceDate;
+    const ps = q.payStatus || 'unpaid';
+    div.innerHTML = '<div class="saved-item-info"><div class="saved-item-ref">' + (q.invoiceRef||'No Ref') + ' &mdash; ' + (q.clientName||'No Client') + ' <span style="font-size:10px;opacity:0.5;font-weight:400;">' + (q.docTitle||'INVOICE') + '</span> <span class="status-pill ' + ps + '">' + ps + '</span></div><div class="saved-item-meta">' + (q.vehReg||'') + (q.vehReg&&q.vehModel?' &middot; ':'') + (q.vehModel||'') + ' &middot; Saved ' + date + '</div></div>' +
+      '<button class="saved-item-copy" onclick="duplicateInvoice(' + q.id + ',event)">Copy</button>' +
+      '<button class="saved-item-del" onclick="deleteInvoice(' + q.id + ',event)">Delete</button>';
+    list.appendChild(div);
+  });
+}
+
+// ── JSON Export / Import ──────────────────────────────────────────
+function exportJSON() {
+  const all = loadAll(); if (!all.length) { toast('No saved invoices', 'inf'); return; }
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'mvbl-invoices-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(a.href); toast('Exported ' + all.length + ' invoice' + (all.length>1?'s':''), 'ok');
+}
+
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const incoming = JSON.parse(evt.target.result);
+      const arr = Array.isArray(incoming) ? incoming : [incoming];
+      const existing = loadAll(); let added = 0, updated = 0;
+      arr.forEach(q => { const idx = existing.findIndex(x => x.id === q.id); if (idx >= 0) { existing[idx] = q; updated++; } else { existing.push(q); added++; } });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+      toast('Imported: ' + added + ' new, ' + updated + ' updated', 'ok'); renderSavedList();
+    } catch { toast('Invalid file', 'err'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── PDF Export ────────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const PW = 210, ML = 12, MR = 12, CW = PW - ML - MR;
+  const NAVY=[13,33,55], NAVY2=[22,51,82], TEAL=[26,107,138], TEALLT=[208,232,240];
+  const SECBG=[228,236,241], WHITE=[255,255,255], BLACK=[26,37,51], MUTED=[107,122,141], LIGHT=[240,244,247];
+  let y = 0;
+
+  const docTitle    = currentDocTitle;
+  const docRefLbl   = (currentRefLabel||'Invoice #').replace(' #','');
+  const clientName  = v('clientName'), clientAddr = v('clientAddr'), clientCity = v('clientCity');
+  const clientEmail = v('clientEmail'), clientPhone = v('clientPhone'), poRef = v('poRef');
+  const invoiceRef  = v('invoiceRef'), invoiceDate = v('invoiceDate'), dueDate = v('dueDate');
+  const vehReg      = v('vehReg'), vehFleet = v('vehFleet'), vehModel = v('vehModel');
+  const vehVin      = v('vehVin'), vehOdo = v('vehOdo'), serviceDate = v('serviceDate');
+  const jobCardRef  = v('jobCardRef'), mechanic = v('mechanic');
+  const companyName = (v('companyName')||'MOONEE VALLEY BUS LINES').toUpperCase();
+
+  const clientLines = [clientName, clientAddr, clientCity, clientEmail, clientPhone].filter(Boolean);
+  const hdrH = Math.max(50, 24 + clientLines.length * 4.5);
+
+  // Header bg
+  doc.setFillColor(...NAVY); doc.rect(0, 0, PW, hdrH, 'F');
+
+  // Company name
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...WHITE);
+  doc.text(companyName, ML, 13);
+
+  // Bill To
+  let hiy = 20;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(120,160,180);
+  if (clientLines.length) { doc.text('Bill To:', ML, hiy); hiy += 4; }
+  doc.setFontSize(9); doc.setTextColor(200,220,232);
+  clientLines.forEach(l => { doc.text(l, ML, hiy); hiy += 4.2; });
+  if (poRef) { hiy += 1; doc.setFontSize(7); doc.setTextColor(120,160,180); doc.text('PO / Ref:', ML, hiy); hiy += 4; doc.setFontSize(8.5); doc.setTextColor(200,220,232); doc.text(poRef, ML, hiy); }
+
+  // Doc title right
+  doc.setFont('helvetica','bold'); doc.setFontSize(28); doc.setTextColor(...WHITE);
+  doc.text(docTitle, PW-MR, 20, { align:'right' });
+
+  // Meta rows
+  const mRow = (lbl, val, yy) => {
+    if (!val) return;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(86,122,141);
+    doc.text(lbl + ':', PW-MR-55, yy);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(212,232,244);
+    doc.text(val, PW-MR, yy, { align:'right' });
+  };
+  mRow(docRefLbl, invoiceRef, 28);
+  mRow('Date', invoiceDate, 34);
+  mRow('Due Date', dueDate, 40);
+  if (vehReg) mRow('Registration', vehReg, 46);
+
+  y = hdrH;
+
+  // Payment status banner
+  const psColors = { paid:[26,107,74], partial:[176,96,0], unpaid:[185,28,28] };
+  const psText   = { paid:'PAID', partial:'PARTIAL PAYMENT', unpaid:'UNPAID' };
+  const ps = currentPayStatus || 'unpaid';
+  doc.setFillColor(...psColors[ps]); doc.rect(0, y, PW, 5, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
+  doc.text(psText[ps], PW/2, y+3.5, { align:'center' });
+  y += 5;
+
+  // Teal stripe
+  doc.setFillColor(...TEAL); doc.rect(0, y, PW, 2, 'F'); y += 2;
+
+  // Info band
+  const infoH = 22;
+  doc.setFillColor(...LIGHT); doc.rect(0, y, PW, infoH, 'F');
+  doc.setDrawColor(...[220,226,232]); doc.setLineWidth(0.2);
+  const colW3 = CW / 3;
+  const infoCol = (lbl, lines, cx) => {
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...TEAL);
+    doc.text(lbl, cx, y+5);
+    let iy = y+10; doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...BLACK);
+    lines.filter(Boolean).forEach(l => { if (iy < y+infoH-1) { doc.text(l.substring(0,40), cx, iy); iy += 4; } });
+  };
+  infoCol('VEHICLE', [vehModel&&'Model: '+vehModel, vehVin&&'VIN: '+vehVin, vehOdo&&'Odo: '+vehOdo, vehReg&&'Rego: '+vehReg], ML);
+  infoCol('SERVICE', [serviceDate&&'Date: '+serviceDate, vehFleet&&'Fleet #: '+vehFleet, mechanic&&'Mechanic: '+mechanic], ML+colW3);
+  infoCol('JOB REFERENCE', [jobCardRef&&'Job Card: '+jobCardRef], ML+colW3*2);
+  y += infoH;
+  doc.setFillColor(...NAVY); doc.rect(0, y, PW, 1.5, 'F'); y += 1.5;
+
+  // Column headers
+  const C_ITEM=12, C_QTY=32, C_UNIT=30, C_TOTAL=30;
+  const C_DESC = CW - C_ITEM - C_QTY - C_UNIT - C_TOTAL;
+  const cols = [
+    { label:'#',           x:ML,                              w:C_ITEM,  align:'center' },
+    { label:'Description', x:ML+C_ITEM,                      w:C_DESC,  align:'left'   },
+    { label:'Qty/Hours',   x:ML+C_ITEM+C_DESC,               w:C_QTY,   align:'right'  },
+    { label:'Unit Price',  x:ML+C_ITEM+C_DESC+C_QTY,         w:C_UNIT,  align:'right'  },
+    { label:'Total',       x:ML+C_ITEM+C_DESC+C_QTY+C_UNIT,  w:C_TOTAL, align:'right'  },
+  ];
+  doc.setFillColor(...NAVY); doc.rect(0, y, PW, 8, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
+  cols.forEach(c => doc.text(c.label, c.align==='right' ? c.x+c.w : c.align==='center' ? c.x+c.w/2 : c.x, y+5.5, { align:c.align }));
+  y += 8;
+
+  const FOOTER_H = 42, PAGE_H = 297, BODY_MAX = PAGE_H - FOOTER_H;
+
+  const drawColHeaders = () => {
+    doc.setFillColor(...NAVY); doc.rect(0, y, PW, 8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
+    cols.forEach(c => doc.text(c.label, c.align==='right' ? c.x+c.w : c.align==='center' ? c.x+c.w/2 : c.x, y+5.5, { align:c.align }));
+    y += 8;
+  };
+
+  const fl1=v('footerLine1'), fl2=v('footerLine2'), fl3=v('footerLine3'), fl4=v('footerLine4');
+  const bankName=v('bankName'), bankAcct=v('bankAccount'), bankBSB=v('bankBSB'), bankAccNum=v('bankAccNum');
+
+  const drawPageFooter = () => {
+    const fy = PAGE_H - FOOTER_H;
+    doc.setFillColor(...NAVY); doc.rect(0, fy, PW, FOOTER_H, 'F');
+    // Bank details left
+    if (bankBSB || bankAccNum) {
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...TEAL);
+      doc.text('PAYMENT DETAILS', ML, fy+6);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(168,196,212);
+      let by = fy+11;
+      if (bankName) { doc.text(bankName, ML, by); by += 4; }
+      if (bankAcct) { doc.text('Account: ' + bankAcct, ML, by); by += 4; }
+      if (bankBSB)  { doc.text('BSB: ' + bankBSB + (bankAccNum ? '   Acc: ' + bankAccNum : ''), ML, by); }
+    }
+    // Company details right
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...TEALLT);
+    if (fl1) doc.text(fl1, PW-MR, fy+8, { align:'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(168,196,212);
+    if (fl2) doc.text(fl2, PW-MR, fy+13, { align:'right', maxWidth:90 });
+    if (fl3) doc.text(fl3, PW-MR, fy+18, { align:'right', maxWidth:90 });
+    doc.setTextColor(86,122,141);
+    if (fl4) doc.text(fl4, PW-MR, fy+23, { align:'right' });
+  };
+
+  // ── Line items ─────────────────────────────────────────────────
+  let rowNum = 0;
+  SECTIONS.forEach(sec => {
+    const rows = document.querySelectorAll('#rows-' + sec.id + ' .item-row');
+    const hasContent = [...rows].some(r => {
+      const ta = r.querySelector('textarea'); const inp = r.querySelectorAll('input');
+      return (ta&&ta.value.trim()) || inp[0].value || inp[1].value;
+    });
+    if (!hasContent) return;
+
+    // Page break check for section header
+    if (y > BODY_MAX - 20) { drawPageFooter(); doc.addPage(); y = 10; drawColHeaders(); }
+
+    // Section name bar
+    doc.setFillColor(...SECBG); doc.rect(0, y, PW, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY2);
+    doc.text(sec.label.toUpperCase(), ML+C_ITEM, y+5);
+    y += 7;
+
+    let secTotal = 0;
+    rows.forEach(row => {
+      const ta = row.querySelector('textarea'); const inp = row.querySelectorAll('input');
+      const desc = ta ? ta.value.trim() : '';
+      const qty = parseFloat(inp[0].value) || 0;
+      const price = parseFloat(inp[1].value) || 0;
+      if (!desc && !qty && !price) return;
+      rowNum++;
+      const lineTotal = qty * price; secTotal += lineTotal;
+
+      const descLines = doc.splitTextToSize(desc || '', C_DESC - 4);
+      const rowH = Math.max(7, descLines.length * 4.5 + 2);
+
+      if (y + rowH > BODY_MAX) { drawPageFooter(); doc.addPage(); y = 10; drawColHeaders(); }
+
+      if (rowNum % 2 === 0) { doc.setFillColor(...LIGHT); doc.rect(0, y, PW, rowH, 'F'); }
+      doc.setDrawColor(220,226,232); doc.setLineWidth(0.15);
+      doc.line(0, y+rowH, PW, y+rowH);
+
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+      doc.text(String(rowNum), ML+C_ITEM/2, y+5, { align:'center' });
+      doc.setTextColor(...BLACK);
+      doc.text(descLines, ML+C_ITEM, y+5);
+      if (qty)   { doc.text(String(qty), ML+C_ITEM+C_DESC+C_QTY, y+5, { align:'right' }); }
+      if (price) { doc.text('$'+price.toFixed(2), ML+C_ITEM+C_DESC+C_QTY+C_UNIT, y+5, { align:'right' }); }
+      if (lineTotal) { doc.setFont('helvetica','bold'); doc.text(fmtAUD(lineTotal), ML+C_ITEM+C_DESC+C_QTY+C_UNIT+C_TOTAL, y+5, { align:'right' }); }
+      y += rowH;
+    });
+
+    // Section subtotal
+    if (y > BODY_MAX - 8) { drawPageFooter(); doc.addPage(); y = 10; }
+    doc.setFillColor(...[204,221,230]); doc.rect(0, y, PW, 6, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY2);
+    doc.text(sec.subtotalLabel.toUpperCase(), ML+C_ITEM, y+4.2);
+    doc.text(fmtAUD(secTotal), PW-MR, y+4.2, { align:'right' });
+    y += 6;
+  });
+
+  // ── Totals ─────────────────────────────────────────────────────
+  if (y > BODY_MAX - 44) { drawPageFooter(); doc.addPage(); y = 10; }
+  y += 3;
+  const totW = 80, totX = PW - MR - totW;
+  const gstEnabled = document.getElementById('gstEnabled').checked;
+  const gstRate = parseFloat(v('gstRate')) || 0;
+  const subtotal = parseFloat(document.getElementById('grandEx').textContent.replace(/[^0-9.-]/g,'')) || 0;
+  const gst = gstEnabled ? subtotal * (gstRate/100) : 0;
+  const total = subtotal + gst;
+  const paidEnabled = document.getElementById('paidToggle').checked;
+  const amtPaid = paidEnabled ? (parseFloat(v('amtPaid')) || 0) : 0;
+  const balance = Math.max(0, total - amtPaid);
+
+  const totRow = (lbl, val, bg, bold) => {
+    doc.setFillColor(...(bg||WHITE)); doc.rect(totX, y, totW, 7, 'F');
+    doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(bold?9:8); doc.setTextColor(...(bold?NAVY:MUTED));
+    doc.text(lbl, totX+3, y+5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(bold?11:9); doc.setTextColor(...NAVY);
+    doc.text(val, totX+totW-2, y+5, { align:'right' });
+    doc.setDrawColor(220,226,232); doc.setLineWidth(0.15); doc.line(totX, y+7, totX+totW, y+7);
+    y += 7;
+  };
+
+  totRow('Subtotal (ex GST)', fmtAUD(subtotal));
+  if (gstEnabled) totRow('GST (' + gstRate + '%)', fmtAUD(gst));
+  // Grand total row
+  doc.setFillColor(...NAVY); doc.rect(totX, y, totW, 9, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(170,200,218);
+  doc.text('TOTAL', totX+3, y+6);
+  doc.setFontSize(13); doc.setTextColor(...WHITE);
+  doc.text(fmtAUD(total), totX+totW-2, y+6.5, { align:'right' });
+  y += 9;
+  if (paidEnabled && amtPaid) {
+    totRow('Amount Paid', '-' + fmtAUD(amtPaid), [240,250,245], false);
+    doc.setFillColor(...[22,107,74]); doc.rect(totX, y, totW, 8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...WHITE);
+    doc.text('BALANCE DUE', totX+3, y+5.5);
+    doc.text(fmtAUD(balance), totX+totW-2, y+5.5, { align:'right' });
+    y += 8;
+  }
+
+  // Notes
+  const notes = v('invoiceNotes');
+  if (notes) {
+    y += 4;
+    if (y > BODY_MAX - 20) { drawPageFooter(); doc.addPage(); y = 10; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...TEAL);
+    doc.text('NOTES & TERMS', ML, y); y += 5;
+    const noteLines = doc.splitTextToSize(notes, CW);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    noteLines.forEach(l => { if (y < BODY_MAX) { doc.text(l, ML, y); y += 4; } });
+  }
+
+  drawPageFooter();
+  doc.save((currentPrefix||'INV') + '-' + (v('invoiceRef')||'invoice') + '.pdf');
+  toast('PDF saved', 'ok');
+}
+
+// ── Word Export ───────────────────────────────────────────────────
+function exportWord() {
+  toast('Building Word document...', 'inf');
+  setTimeout(() => {
+    try {
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel,
+              AlignmentType, WidthType, ShadingType, BorderStyle } = docx;
+
+      const navyHex = '0D2137'; const tealHex = '1A6B8A';
+      const mkPara = (text, opts = {}) => new Paragraph({ children: [new TextRun({ text: String(text||''), ...opts })], ...opts.para });
+      const mkCell = (text, opts = {}) => new TableCell({
+        children: [new Paragraph({ children:[new TextRun({ text: String(text||''), bold:opts.bold, size:opts.size||20, color:opts.color||'000000' })], alignment:opts.align||AlignmentType.LEFT })],
+        shading: opts.bg ? { fill:opts.bg, type:ShadingType.CLEAR } : undefined,
+        width: opts.w ? { size:opts.w, type:WidthType.DXA } : undefined,
+      });
+
+      const rows = [];
+      // Header
+      rows.push(mkPara('MOONEE VALLEY BUS LINES', { bold:true, size:36, color:navyHex }));
+      rows.push(mkPara(currentDocTitle + ' — ' + v('invoiceRef'), { bold:true, size:28, color:tealHex }));
+      rows.push(mkPara('Date: ' + v('invoiceDate') + '   Due: ' + v('dueDate'), { size:20 }));
+      rows.push(mkPara(''));
+      if (v('clientName')) rows.push(mkPara('Bill To: ' + [v('clientName'),v('clientAddr'),v('clientCity'),v('clientEmail')].filter(Boolean).join(', '), { size:20 }));
+      if (v('vehReg')) rows.push(mkPara('Vehicle: ' + [v('vehModel'),v('vehReg'),v('vehOdo')].filter(Boolean).join(' | '), { size:20 }));
+      if (v('jobCardRef')) rows.push(mkPara('Job Card: ' + v('jobCardRef') + (v('mechanic') ? '  Mechanic: ' + v('mechanic') : ''), { size:20 }));
+      rows.push(mkPara(''));
+
+      // Line items table
+      const hdrCells = ['#','Description','Qty/Hours','Unit Price','Total'].map(t => mkCell(t, { bold:true, bg:navyHex, color:'FFFFFF', size:18 }));
+      const tableRows = [new TableRow({ children: hdrCells })];
+      let rowNum = 0;
+      SECTIONS.forEach(sec => {
+        const domRows = document.querySelectorAll('#rows-' + sec.id + ' .item-row');
+        const hasContent = [...domRows].some(r => { const ta=r.querySelector('textarea'); const inp=r.querySelectorAll('input'); return (ta&&ta.value.trim())||inp[0].value||inp[1].value; });
+        if (!hasContent) return;
+        tableRows.push(new TableRow({ children: [mkCell(sec.label.toUpperCase(), { bold:true, bg:'E4ECF1', color:navyHex, size:18 }), mkCell('','',{bg:'E4ECF1'}), mkCell('','',{bg:'E4ECF1'}), mkCell('','',{bg:'E4ECF1'}), mkCell('','',{bg:'E4ECF1'})] }));
+        domRows.forEach(row => {
+          const ta=row.querySelector('textarea'); const inp=row.querySelectorAll('input');
+          const desc=ta?ta.value.trim():''; const qty=parseFloat(inp[0].value)||0; const price=parseFloat(inp[1].value)||0;
+          if (!desc&&!qty&&!price) return;
+          rowNum++;
+          const bg = rowNum%2===0 ? 'F0F4F7' : 'FFFFFF';
+          tableRows.push(new TableRow({ children: [mkCell(rowNum,{bg}),mkCell(desc,{bg}),mkCell(qty||'',{bg,align:AlignmentType.RIGHT}),mkCell(price?'$'+price.toFixed(2):'',{bg,align:AlignmentType.RIGHT}),mkCell(qty&&price?fmtAUD(qty*price):'',{bg,align:AlignmentType.RIGHT,bold:true})] }));
+        });
+        const secTotal = [...domRows].reduce((sum,r)=>{ const inp=r.querySelectorAll('input'); return sum+(parseFloat(inp[0].value)||0)*(parseFloat(inp[1].value)||0); }, 0);
+        tableRows.push(new TableRow({ children: [mkCell('','',{bg:'CCDDE6'}),mkCell(sec.subtotalLabel,{bg:'CCDDE6',bold:true,color:navyHex}),mkCell('',{bg:'CCDDE6'}),mkCell('',{bg:'CCDDE6'}),mkCell(fmtAUD(secTotal),{bg:'CCDDE6',bold:true,align:AlignmentType.RIGHT})] }));
+      });
+      rows.push(new Table({ rows: tableRows, width:{ size:100, type:WidthType.PERCENTAGE } }));
+      rows.push(mkPara(''));
+
+      // Totals
+      const sub = parseFloat(document.getElementById('grandEx').textContent.replace(/[^0-9.-]/g,''))||0;
+      const gstEnabled = document.getElementById('gstEnabled').checked;
+      const gstRate = parseFloat(v('gstRate'))||0;
+      const gst = gstEnabled ? sub*(gstRate/100) : 0;
+      const total = sub + gst;
+      rows.push(mkPara('Subtotal: ' + fmtAUD(sub), { size:20 }));
+      if (gstEnabled) rows.push(mkPara('GST (' + gstRate + '%): ' + fmtAUD(gst), { size:20 }));
+      rows.push(mkPara('TOTAL: ' + fmtAUD(total), { bold:true, size:26, color:navyHex }));
+      rows.push(mkPara(''));
+
+      // Bank details & notes
+      if (v('bankBSB')) { rows.push(mkPara('Payment Details:', { bold:true, size:20 })); rows.push(mkPara(v('bankName') + '  |  Account: ' + v('bankAccount') + '  |  BSB: ' + v('bankBSB') + '  Acc: ' + v('bankAccNum'), { size:18 })); rows.push(mkPara('')); }
+      if (v('invoiceNotes')) { rows.push(mkPara('Notes & Terms:', { bold:true, size:20 })); rows.push(mkPara(v('invoiceNotes'), { size:18 })); rows.push(mkPara('')); }
+      rows.push(mkPara(v('footerLine1') + '  |  ' + v('footerLine4'), { size:16, color:'888888' }));
+
+      const wordDoc = new Document({ sections:[{ children: rows }] });
+      Packer.toBlob(wordDoc).then(blob => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = (currentPrefix||'INV') + '-' + (v('invoiceRef')||'invoice') + '.docx';
+        a.click(); URL.revokeObjectURL(a.href); toast('Word exported', 'ok');
+      });
+    } catch(e) { console.error(e); toast('Word export failed', 'err'); }
+  }, 50);
+}
+
+// ── Excel Export ──────────────────────────────────────────────────
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const wsData = [
+    [currentDocTitle + ' — ' + v('invoiceRef')],
+    ['Date:', v('invoiceDate'), 'Due:', v('dueDate')],
+    ['Bill To:', v('clientName'), v('clientAddr'), v('clientCity')],
+    ['Vehicle:', v('vehModel'), 'Rego:', v('vehReg'), 'Odo:', v('vehOdo')],
+    ['Job Card:', v('jobCardRef'), 'Mechanic:', v('mechanic')],
+    [],
+    ['#', 'Section', 'Description', 'Qty/Hours', 'Unit Price', 'Total'],
+  ];
+  let rn = 0;
+  SECTIONS.forEach(sec => {
+    document.querySelectorAll('#rows-' + sec.id + ' .item-row').forEach(row => {
+      const ta=row.querySelector('textarea'); const inp=row.querySelectorAll('input');
+      const desc=ta?ta.value.trim():''; const qty=parseFloat(inp[0].value)||0; const price=parseFloat(inp[1].value)||0;
+      if (!desc&&!qty&&!price) return;
+      rn++; wsData.push([rn, sec.label, desc, qty||'', price||'', qty*price]);
+    });
+    const secTotal = [...document.querySelectorAll('#rows-' + sec.id + ' .item-row')].reduce((s,r)=>{ const i=r.querySelectorAll('input'); return s+(parseFloat(i[0].value)||0)*(parseFloat(i[1].value)||0); },0);
+    if (secTotal) wsData.push(['', '', sec.subtotalLabel, '', '', secTotal]);
+  });
+  const sub = parseFloat(document.getElementById('grandEx').textContent.replace(/[^0-9.-]/g,''))||0;
+  const gst = document.getElementById('gstEnabled').checked ? sub*(parseFloat(v('gstRate'))||0)/100 : 0;
+  wsData.push([],[],[' ','','Subtotal',   '',  '',  sub],
+                   [' ','','GST',         '',  '',  gst],
+                   [' ','','TOTAL',        '', '',  sub+gst]);
+  if (v('bankBSB')) wsData.push([],['Bank:', v('bankName')],['Account:', v('bankAccount')],['BSB:', v('bankBSB')],['Acc No:', v('bankAccNum')]);
+  if (v('invoiceNotes')) wsData.push([],['Notes:', v('invoiceNotes')]);
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:4},{wch:18},{wch:45},{wch:12},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Invoice');
+  XLSX.writeFile(wb, (currentPrefix||'INV') + '-' + (v('invoiceRef')||'invoice') + '.xlsx');
+  toast('Excel exported', 'ok');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast show ' + (type||'ok');
+  setTimeout(() => { el.className = 'toast'; }, 2500);
+}
+
+// ── SharePoint ────────────────────────────────────────────────────
+const SP_CLIENT_KEY='mvbl_sp_client', SP_TENANT_KEY='mvbl_sp_tenant', SP_TOKEN_KEY='mvbl_sp_token', SP_TOKEN_EXP='mvbl_sp_token_exp', SP_USER_KEY='mvbl_sp_user';
+const SP_LIBRARY='Workshop System Files';
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const SCOPES = 'https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Files.ReadWrite.All offline_access openid profile';
+
+function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function pkceChallenge(){const vr=b64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(vr));return{verifier:vr,challenge:b64url(h)};}
+
+async function handleAuthRedirect(){
+  const p=new URLSearchParams(window.location.search);
+  const code=p.get('code'); const state=p.get('state'); const error=p.get('error');
+  if(error||!code)return;
+  if(state!==sessionStorage.getItem('sp_auth_state'))return;
+  const verifier=sessionStorage.getItem('sp_pkce_verifier');
+  const clientId=localStorage.getItem(SP_CLIENT_KEY); const tenantId=localStorage.getItem(SP_TENANT_KEY);
+  if(!verifier||!clientId||!tenantId)return;
+  try{
+    const resp=await fetch('https://login.microsoftonline.com/'+tenantId+'/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',client_id:clientId,code,redirect_uri:REDIRECT_URI,code_verifier:verifier,scope:SCOPES})});
+    const data=await resp.json(); if(data.error)throw new Error(data.error_description||data.error);
+    const exp=Date.now()+(data.expires_in-60)*1000;
+    localStorage.setItem(SP_TOKEN_KEY,data.access_token); localStorage.setItem(SP_TOKEN_EXP,exp.toString());
+    if(data.refresh_token)localStorage.setItem('sp_refresh_token',data.refresh_token);
+    if(data.id_token){try{const pl=JSON.parse(atob(data.id_token.split('.')[1]));localStorage.setItem(SP_USER_KEY,pl.preferred_username||pl.upn||pl.email||'Signed in');}catch(e){}}
+    window.history.replaceState({},'',window.location.origin+window.location.pathname);
+    sessionStorage.removeItem('sp_auth_state'); sessionStorage.removeItem('sp_pkce_verifier');
+    setTimeout(()=>{submitToSharePoint();toast('Signed in to Microsoft','ok');},300);
+  }catch(err){console.error('Auth error:',err);toast('Sign-in failed: '+err.message,'err');}
+}
+
+function getToken(){const t=localStorage.getItem(SP_TOKEN_KEY);const e=parseInt(localStorage.getItem(SP_TOKEN_EXP)||'0');if(t&&Date.now()<e)return t;return null;}
+
+function submitToSharePoint(){
+  const c=localStorage.getItem(SP_CLIENT_KEY)||''; const t=localStorage.getItem(SP_TENANT_KEY)||'';
+  document.getElementById('spClientId').value=c; document.getElementById('spTenantId').value=t;
+  document.getElementById('spProgress').style.display='none';
+  document.getElementById('spProgressBar').style.width='0%'; document.getElementById('spProgressBar').style.background='#0078d4';
+  document.getElementById('spModal').style.display='flex';
+  if(!c||!t){showSpSetup();}else{hideSpSetup();const tok=getToken();if(tok)showSignedIn(localStorage.getItem(SP_USER_KEY)||'');else showSignIn();}
+}
+function closeSpModal(){document.getElementById('spModal').style.display='none';}
+function showSpSetup(){document.getElementById('spSetupSection').style.display='block';document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='none';}
+function hideSpSetup(){document.getElementById('spSetupSection').style.display='none';}
+function showSignIn(){document.getElementById('spSignedInSection').style.display='none';document.getElementById('spSignInBtn').style.display='flex';document.getElementById('spSubmitBtn').style.display='none';}
+function showSignedIn(user){document.getElementById('spSignedInUser').textContent=user;document.getElementById('spSignedInSection').style.display='block';document.getElementById('spSignInBtn').style.display='none';document.getElementById('spSubmitBtn').style.display='flex';}
+function saveSpConfig(){const c=document.getElementById('spClientId').value.trim();const t=document.getElementById('spTenantId').value.trim();if(!c||!t){toast('Enter both IDs','err');return;}localStorage.setItem(SP_CLIENT_KEY,c);localStorage.setItem(SP_TENANT_KEY,t);hideSpSetup();showSignIn();toast('Settings saved','ok');}
+function spSignOut(){localStorage.removeItem(SP_TOKEN_KEY);localStorage.removeItem(SP_TOKEN_EXP);localStorage.removeItem(SP_USER_KEY);localStorage.removeItem('sp_refresh_token');showSignIn();toast('Signed out','inf');}
+
+async function spSignIn(){
+  const clientId=localStorage.getItem(SP_CLIENT_KEY); const tenantId=localStorage.getItem(SP_TENANT_KEY);
+  if(!clientId||!tenantId){showSpSetup();return;}
+  const{verifier,challenge}=await pkceChallenge();
+  const state=b64url(crypto.getRandomValues(new Uint8Array(16)));
+  sessionStorage.setItem('sp_pkce_verifier',verifier); sessionStorage.setItem('sp_auth_state',state);
+  const authUrl=new URL('https://login.microsoftonline.com/'+tenantId+'/oauth2/v2.0/authorize');
+  authUrl.searchParams.set('client_id',clientId); authUrl.searchParams.set('response_type','code');
+  authUrl.searchParams.set('redirect_uri',REDIRECT_URI); authUrl.searchParams.set('scope',SCOPES);
+  authUrl.searchParams.set('state',state); authUrl.searchParams.set('code_challenge',challenge);
+  authUrl.searchParams.set('code_challenge_method','S256'); authUrl.searchParams.set('response_mode','query');
+  authUrl.searchParams.set('prompt','select_account'); window.location.href=authUrl.toString();
+}
+
+async function graphCall(method,path,body,isBinary){
+  const token=getToken(); if(!token)throw new Error('Not signed in');
+  const url='https://graph.microsoft.com/v1.0'+path;
+  const opts={method,headers:{'Authorization':'Bearer '+token,'Content-Type':isBinary?'application/octet-stream':'application/json'}};
+  if(body!==undefined)opts.body=isBinary?body:JSON.stringify(body);
+  const resp=await fetch(url,opts);
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error&&err.error.message)||'Graph error '+resp.status);}
+  const ct=resp.headers.get('content-type')||'';
+  if(resp.status===204||!ct.includes('application/json'))return{};
+  return resp.json();
+}
+
+function b64ToBuffer(b64){const bin=atob(b64);const buf=new ArrayBuffer(bin.length);const arr=new Uint8Array(buf);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return buf;}
+function setProgress(pct,msg,detail){document.getElementById('spProgressBar').style.width=pct+'%';document.getElementById('spProgressMsg').textContent=msg;if(detail!==undefined)document.getElementById('spProgressDetail').textContent=detail;}
+function spError(msg){document.getElementById('spProgressMsg').textContent='Error: '+msg;document.getElementById('spProgressBar').style.background='#c0292b';document.getElementById('spProgressBar').style.width='100%';}
+
+async function doSubmitToSharePoint(){
+  if(!getToken()){spSignIn();return;}
+  document.getElementById('spProgress').style.display='block';
+  document.getElementById('spSubmitBtn').disabled=true;
+  try{
+    setProgress(10,'Generating PDF...','');
+    const {jsPDF}=window.jspdf; const pdfdoc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    pdfdoc.setFillColor(13,33,55); pdfdoc.rect(0,0,210,24,'F');
+    pdfdoc.setFont('helvetica','bold'); pdfdoc.setFontSize(14); pdfdoc.setTextColor(255,255,255);
+    pdfdoc.text(currentDocTitle+' — '+v('invoiceRef'), 12, 14);
+    pdfdoc.setFontSize(8); pdfdoc.setTextColor(26,107,138);
+    pdfdoc.text('Moonee Valley Bus Lines — '+v('clientName'), 12, 20);
+    const pdfBase64=pdfdoc.output('datauristring').split(',')[1];
+    const pdfBuffer=b64ToBuffer(pdfBase64);
+    setProgress(22,'Connecting to SharePoint...','');
+    const siteInfo=await graphCall('GET','/sites/mvbus.sharepoint.com:/sites/Workshop-MooneeValleyBusLines:');
+    const siteId=siteInfo.id;
+    const drivesInfo=await graphCall('GET','/sites/'+siteId+'/drives');
+    const drive=drivesInfo.value.find(d=>d.name===SP_LIBRARY||(d.webUrl&&d.webUrl.toLowerCase().includes(SP_LIBRARY.toLowerCase().replace(/ /g,'%20'))));
+    if(!drive)throw new Error('Library "'+SP_LIBRARY+'" not found');
+    const driveId=drive.id;
+    const safe=s=>s.replace(/[/\\:*?"<>| ]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    // Folder name: YYYY-MM-DD_REGO_FLEET
+    const _rawDate = v('invoiceDate').replace(/\//g,'-') || new Date().toISOString().split('T')[0];
+    const _rego = v('vehReg') || '';
+    const _fleet = v('vehFleet') || '';
+    const _safe = s => (s||'').replace(/[^a-zA-Z0-9]/g,'').trim();
+    const folderName = [_rawDate, _safe(_rego), _safe(_fleet)].filter(Boolean).join('_').substring(0,100) || 'Invoice-' + new Date().toISOString().split('T')[0];
+    const fileName = folderName + '.pdf';
+    setProgress(50,'Creating folder...','Invoices/'+folderName);
+    try{await graphCall('POST','/drives/'+driveId+'/root/children',{name:'Invoices',folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    try{await graphCall('POST','/drives/'+driveId+'/root:/Invoices:/children',{name:folderName,folder:{},['@microsoft.graph.conflictBehavior']:'rename'});}catch(e){}
+    setProgress(75,'Uploading PDF...',fileName);
+    await graphCall('PUT','/drives/'+driveId+'/root:/Invoices/'+encodeURIComponent(folderName)+'/'+encodeURIComponent(fileName)+':/content',pdfBuffer,true);
+    setProgress(100,'Submitted successfully!','Saved to Invoices/'+folderName);
+    document.getElementById('spProgressBar').style.background='#16a34a';
+    setTimeout(()=>{closeSpModal();document.getElementById('spSubmitBtn').disabled=false;toast('Submitted to SharePoint','ok');saveInvoice();},1800);
+  }catch(err){console.error(err);document.getElementById('spSubmitBtn').disabled=false;spError(err.message);}
+}
+</script>
+</body>
+</html>
